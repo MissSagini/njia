@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/*
+ * Njia design tokens. Values come from the Njia design system
+ * (claude.ai/design, _ds/njia-design-system tokens) and DESIGN.md.
+ * Tailwind's default palette, radii, shadows and type sizes are cleared
+ * so only brand tokens can be used.
+ */
+@theme {
+  --color-*: initial;
+  --color-forest: #1f4d3a;
+  --color-sunset: #c8551b;
+  --color-ochre: #e3a43b;
+  --color-cream: #fbf6ee;
+  --color-white: #ffffff;
+  --color-forest-soft: #dce8e0;
+  --color-ink: #1c2a23;
+  --color-ink-muted: #5a6660;
+  --color-line: #e6dccb;
+  --color-on-forest: #ffffff;
+
+  /* Interaction states: mixed toward Ink, not new hex values */
+  --color-sunset-hover: color-mix(in srgb, #c8551b 88%, #1c2a23);
+  --color-forest-hover: color-mix(in srgb, #1f4d3a 85%, #1c2a23);
+  --color-tint-hover: color-mix(in srgb, #dce8e0 80%, #e6dccb);
+  /* Only transparency allowed: Cream hairlines on Ink */
+  --color-hairline-dark: color-mix(in srgb, #fbf6ee 18%, transparent);
+  --color-scrim: color-mix(in srgb, #1c2a23 55%, transparent);
+
+  --radius-*: initial;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+
+  --shadow-*: initial;
+  --shadow-sm: 0 1px 2px rgba(28, 42, 35, 0.06);
+  --shadow-md: 0 4px 14px rgba(28, 42, 35, 0.08);
+  --shadow-lg: 0 14px 36px rgba(28, 42, 35, 0.14);
+  --shadow-focus: 0 0 0 3px #dce8e0;
+  --shadow-focus-error: 0 0 0 3px color-mix(in srgb, #c8551b 18%, transparent);
+
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --container-site: 1200px;
+  --container-app: 1280px;
+
+  --text-*: initial;
+  --text-display: 60px;
+  --text-display--line-height: 64px;
+  --text-display--letter-spacing: -0.01em;
+  --text-display-mobile: 40px;
+  --text-display-mobile--line-height: 44px;
+  --text-display-mobile--letter-spacing: -0.01em;
+  --text-title: 32px;
+  --text-title--line-height: 40px;
+  --text-heading: 22px;
+  --text-heading--line-height: 30px;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 29px;
+  --text-body: 16px;
+  --text-body--line-height: 26px;
+  --text-small: 14px;
+  --text-small--line-height: 22px;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-label--letter-spacing: 0.08em;
+  --text-button: 19px;
+  --text-button--line-height: 24px;
+}
+
+/* Font families point at the next/font variables set in the root layout */
+@theme inline {
+  --font-*: initial;
+  --font-display: var(--font-literata), Georgia, "Times New Roman", serif;
+  --font-heading: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Type styles from the brand type scale */
+@utility type-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-display-mobile);
+  line-height: var(--text-display-mobile--line-height);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  @media (width >= 40rem) {
+    font-size: var(--text-display);
+    line-height: var(--text-display--line-height);
+  }
+}
+@utility type-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--text-title);
+  line-height: var(--text-title--line-height);
+  text-wrap: balance;
+}
+@utility type-heading {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--text-heading);
+  line-height: var(--text-heading--line-height);
+}
+@utility type-label {
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  font-weight: 600;
+  letter-spacing: var(--text-label--letter-spacing);
+  text-transform: uppercase;
+}
+
+@layer base {
+  html {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--color-forest);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-forest);
+    outline-offset: 2px;
+  }
+  ::placeholder {
+    color: var(--color-ink-muted);
+    opacity: 0.8;
+  }
+}

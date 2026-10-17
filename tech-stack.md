@@ -9,7 +9,7 @@
 
 | Layer | Pick |
 |---|---|
-| Front end | **Next.js + TypeScript + Tailwind + shadcn/ui** |
+| Front end | **Next.js + TypeScript + Tailwind**, with our own components ported from the Claude Design system |
 | Back end | **Next.js server code** (server actions and API routes) for app logic, plus **Inngest** for automatic, event-driven steps |
 | Database | **PostgreSQL on Supabase** (EU region, Pro plan), schema and migrations in code with **Drizzle** |
 | Authentication | **Supabase Auth**: email link for students, plus required 2FA for mentors and admins |
@@ -26,10 +26,10 @@ The stack is designed for three needs beyond the v2 spec: **instalments and depo
 |---|---|---|
 | Framework | **Next.js (App Router) + TypeScript** | Website pages (Home, How it works, Mentors, For parents) are pre-rendered for SEO and speed. App screens (Goals and booking, Payment, Log in, My mentor, Sessions, My goals) sit behind login. The Mentors page caches approved mentors, so newly approved ones appear without a redeploy. |
 | Styling | **Tailwind CSS** | Brand tokens (colours, type scale, radius, spacing) from `brand/brand-guide.md`. |
-| Components | **shadcn/ui** | Accessible forms, checkboxes, dialogs and tabs, restyled to the brand. |
+| Components | **Own components** (`src/components/ui`) | Ported from the Njia design system in Claude Design: buttons, form fields, cards, chips, banners, sheets, toasts, navigation. |
 | Fonts | **`next/font`** (Google Fonts) | Literata 600, Fraunces 600 and DM Sans 400/500/600/700. |
 | Forms | **React Hook Form + Zod** | Goals and My goals forms (up to 5 dream universities, optional school). The same Zod schemas validate in the browser and on the server. |
-| Screen states | Next.js `loading.tsx` / `error.tsx` + shadcn | Loading, empty, error and success states on every app screen. |
+| Screen states | Next.js `loading.tsx` / `error.tsx` + Skeleton, EmptyState and Banner components | Loading, empty, error and success states on every app screen. |
 | Back end | **Next.js server actions and API routes** | All reads and writes of private data, permission checks, payment webhooks. The browser never writes to the database directly. |
 | Database | **Supabase Postgres** (EU region, **Pro plan**) | Relational data with strict transactions, which money records need. Pro adds daily backups, point-in-time restore and no project pausing. |
 | Schema & migrations | **Drizzle ORM** | Tables defined in TypeScript, versioned migrations, typed queries. |
