@@ -1,11 +1,11 @@
-import { AppShell } from "@/components/navigation/AppShell";
+import type { ReactNode } from "react";
+import { SignedInShell } from "@/components/navigation/SignedInShell";
 import { mentorAppLinks } from "@/lib/navigation";
 
-export default function MentorLayout({ children }: LayoutProps<"/">) {
-  // Initials are a stand-in until login is built
+export default function MentorLayout({ children }: { children: ReactNode }) {
   return (
-    <AppShell items={mentorAppLinks} role="mentor" initials="AW">
+    <SignedInShell roles={["mentor"]} items={mentorAppLinks}>
       {children}
-    </AppShell>
+    </SignedInShell>
   );
 }

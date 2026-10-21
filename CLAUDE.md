@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Njia is a mentoring platform plus a marketing website. It pairs Kenyan students with Kenyan mentors who studied at their dream UK or European university. The app is scaffolded with the design system, components and navigation; **every page is still a placeholder** and there is no back end yet. Design inputs:
+Njia is a mentoring platform plus a marketing website. It pairs Kenyan students with Kenyan mentors who studied at their dream UK or European university. The app has the design system, the four website pages, the database schema and login (email and password). Signed-in screens, Get started, payments and booking are still to build. Design inputs:
 
 - `product-spec/Njia Product Spec v2.md` is the **authoritative spec**. `product-spec/njia-product-spec.md` is the superseded v1, kept for history; don't build from it.
 - `brand/brand-guide.md` holds the colour tokens, type scale, components, logo rules, voice and a pre-release checklist.
@@ -19,7 +19,12 @@ Njia is a mentoring platform plus a marketing website. It pairs Kenyan students 
 - `npm run dev`: dev server at http://localhost:3000
 - `npm run build`: production build; also runs the TypeScript check
 - `npm run lint`: ESLint
+- `npm run db:generate`: create a migration in `drizzle/` from `src/db/schema.ts` (`-- --custom --name x` for hand-written SQL)
+- `npm run db:migrate`: apply migrations to the Supabase database in `DATABASE_URL`
+- `npm run user:create -- --email a@b.com --name "Name" --role admin|mentor|student`: create a login and email a link to choose a password (use for the first admin)
 - No test runner is set up yet.
+
+Settings live in `.env.local` (copy `.env.example`; never commit it). Without it the public website still runs, but signed-in areas redirect to log in.
 
 This is **Next.js 16** with `cacheComponents` and `partialPrefetching` on (see `next.config.ts`). APIs differ from older Next.js: read the relevant guide in `node_modules/next/dist/docs/` before writing framework code. Under Cache Components, client hooks that read URL data (`useSearchParams`, `usePathname` on routes with unknown dynamic params) need a `Suspense` boundary or the build fails. `LayoutProps`/`PageProps` are generated global types, so run `npm run build` (or `next dev`) once if `tsc` can't find them.
 
@@ -30,7 +35,13 @@ This is **Next.js 16** with `cacheComponents` and `partialPrefetching` on (see `
 - `src/components/ui/` holds the design-system components ported from the Claude Design bundle: Button, Card, Badge, TextInput, Select, Checkbox, FormLayout/FormRow/FormGroup, ChoiceChip, Banner, EmptyState, Skeleton, Toast, Sheet, Avatar, Icon (bundled Lucide paths; add new icons to the map), Logo and PathMotif. Import from `@/components/ui`. Hover, focus and active states are CSS, not JS state.
 - `src/components/navigation/`: `SiteHeader` and `SiteFooter` for the website; `AppShell` (`AppHeader` plus the mobile-only `AppTabBar`) for the platform. Desktop navigation starts at the `lg` breakpoint.
 - `src/lib/navigation.ts` is the single list of nav links for the header, footer and tab bar.
-- Routes use route groups: `(site)` (website: `/`, `/how-it-works`, `/mentors`, `/for-parents`, `/get-started`, `/log-in`), `(student)` (`/my-mentor`, `/sessions`, `/my-goals`) and `(mentor)` (`/students`). Each group's `layout.tsx` picks its shell. The student and mentor initials in those layouts are stand-ins until auth exists, and "Log out" just links home.
+- Routes use route groups: `(site)` (website: `/`, `/how-it-works`, `/mentors`, `/for-parents`, `/get-started`), `(auth)` (`/log-in`, `/auth/confirm`, `/mfa`, minimal header), `(student)` (`/my-mentor`, `/sessions`, `/my-goals`), `(mentor)` (`/students`) and `(admin)` (`/admin`). Each group's `layout.tsx` picks its shell.
+- **Database:** tables in `src/db/schema.ts` (Drizzle). Read rules (RLS policies), helper functions in the `private` schema, the profile trigger, grants and append-only log triggers are hand-written SQL in `drizzle/0001_security_and_seed.sql`; new tables need the same treatment (enable RLS, add a SELECT policy, and keep the `authenticated` role select-only).
+- **Two database paths** (`src/db/index.ts`): `asUser(claims, tx => …)` runs queries as the signed-in user so RLS applies, and is the default for every read. `adminDb()` bypasses RLS and is only for writes or system jobs after server code has checked permission. The browser never queries the database.
+- **Auth:** `src/proxy.ts` refreshes the Supabase session and does a fast role redirect per area (`src/lib/auth/roles.ts`). The real check is `requireViewer()` in `src/lib/auth/dal.ts`, called by `SignedInShell` in each signed-in route group's layout and by every Server Action. The role comes from `profiles.role` (DB), mirrored in the JWT's `app_metadata.role`, which only the secret key can set. Accounts are never self-created: Supabase sign-ups are off and accounts are made by the server (secret key).
+- Login is **email and password** (`/log-in`; no magic links, no 2FA, by the owner's decision). Email links are used only to choose a first password or reset a forgotten one: `/forgot-password` → email → `/auth/confirm` (needs a button press, so email scanners can't use the link up) → `/set-password`. Passwords are at least 10 characters (`MIN_PASSWORD_LENGTH`). Login errors never reveal whether an email has an account.
+- Pages that read the session must sit inside `<Suspense>` (Cache Components). `createClient()` in `src/lib/supabase/server.ts` awaits `cookies()` and `connection()` first so session checks never run during prerendering.
+- Don't run `npm run build` while `npm run dev` is running: they share `.next/` and the dev server ends up serving stale code. Stop dev, delete `.next`, restart.
 - `src/components/Placeholder.tsx` renders the temporary page bodies; delete each use as real screens are built.
 
 ## Stack
@@ -42,7 +53,7 @@ The full stack, with reasons and pre-build checks, is in `tech-stack.md`. In sho
 - **Back end is Next.js server code** (server actions, API routes). The browser never writes to the database directly; every write goes through server code that checks permissions.
 - **Supabase** (Postgres, Auth, Row Level Security) in an EU region on the Pro plan. Schema and migrations are defined in **Drizzle**. RLS is a second lock behind the server checks, so keep it on every table.
 - **Inngest** runs event-driven workflows (next week's setup, pairing countdown, weekly report, future instalment reminders). Put automatic follow-on steps there, not in request handlers.
-- Login is via Supabase Auth by **email link** (passwordless), with a 6-digit email code as fallback for school mail scanners. Mentors and admins must also use **2FA**. Send Supabase's emails through Resend SMTP.
+- Login is via Supabase Auth with **email and password**. No 2FA. Send Supabase's emails (password set/reset) through Resend SMTP.
 - **Payments:** M-Pesa through **Safaricom Daraja STK Push, direct**. The prompt can go to the parent's phone, and the callback's receipt number fills `M-Pesa reference`. Cards (Visa/Mastercard) go through **Paystack**. Both write to the same `Payments` table via webhooks.
 - **Booking is built in-app** on the `Mentor availability` table. Use a transaction plus a unique constraint so a slot can't be double-booked; this is the spec's "call time that was just booked" error state. **Google Calendar API** creates the event and its Meet link (stored on `Sessions`) and invites the parent to the free call.
 - **Resend + React Email** for the weekly parent report and confirmations. **Vercel Cron** for the weekly report and a daily check for paid-but-unpaired students.

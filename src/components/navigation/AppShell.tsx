@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
+import type { Role } from "@/lib/auth/roles";
 import type { NavItem } from "@/lib/navigation";
 import { AppHeader } from "./AppHeader";
 import { AppTabBar } from "./AppTabBar";
 
 type AppShellProps = {
   items: NavItem[];
-  role: "student" | "mentor";
+  role: Role;
   initials: string;
   children: ReactNode;
 };

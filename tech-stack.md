@@ -12,7 +12,7 @@
 | Front end | **Next.js + TypeScript + Tailwind**, with our own components ported from the Claude Design system |
 | Back end | **Next.js server code** (server actions and API routes) for app logic, plus **Inngest** for automatic, event-driven steps |
 | Database | **PostgreSQL on Supabase** (EU region, Pro plan), schema and migrations in code with **Drizzle** |
-| Authentication | **Supabase Auth**: email link for students, plus required 2FA for mentors and admins |
+| Authentication | **Supabase Auth**: email and password for everyone |
 
 One Next.js codebase serves both the marketing website and the logged-in platform. M-Pesa payments go directly through Safaricom Daraja, and card payments go through Paystack. Booking is built into the app, Google Calendar creates the Meet links, and Resend sends every email.
 
@@ -34,8 +34,7 @@ The stack is designed for three needs beyond the v2 spec: **instalments and depo
 | Database | **Supabase Postgres** (EU region, **Pro plan**) | Relational data with strict transactions, which money records need. Pro adds daily backups, point-in-time restore and no project pausing. |
 | Schema & migrations | **Drizzle ORM** | Tables defined in TypeScript, versioned migrations, typed queries. |
 | Workflows | **Inngest** | Event-driven steps with retries and a log of every run (see section 4). |
-| Auth | **Supabase Auth** (email link + 6-digit code fallback) | Passwordless login for students. The code fallback covers school email systems that scan links and use them up. |
-| 2FA | **Supabase Auth MFA** (authenticator app) | Required for mentors and admins, who can see many students' data. |
+| Auth | **Supabase Auth** (email and password) | Everyone logs in with email and password (at least 10 characters). Email links are only used to choose a first password or reset a forgotten one. |
 | Access control | **Server checks + Supabase Row Level Security** | Two locks: server code checks every request, and the database's row-level rules apply even if the server code has a bug. Students see only their own data, mentors only their paired students, and admins everything. |
 | M-Pesa | **Safaricom Daraja API (STK Push), direct** | Sends the payment prompt to the student's or **parent's** phone. The callback's receipt number fills `M-Pesa reference`. Merchant fees are capped, unlike an aggregator's percentage fee. |
 | Cards | **Paystack** (hosted checkout) | Visa and Mastercard in KES with 3-D Secure. Card details never touch Njia's servers. |
@@ -94,7 +93,7 @@ Students are often under 18, so this is a core requirement.
 
 - **No direct database writes from the browser.** Every change goes through server code that checks identity and permissions. Row Level Security is a second lock behind it.
 - **Least privilege.** The database master key is only used on the server, never sent to the browser.
-- **2FA required for mentors and admins**, with shorter login sessions for admins.
+- **Strong passwords** (at least 10 characters). 2FA was considered and left out by decision; it can be added later for mentors and admins.
 - **Access log** recording who viewed or changed each student's record.
 - **No card data stored.** Paystack's hosted checkout handles cards. Every payment notification is verified as genuinely coming from Safaricom or Paystack.
 - **Encryption.** Data is encrypted at rest by default. Add field-level encryption for the most sensitive fields (for example parent phone numbers) if needed.

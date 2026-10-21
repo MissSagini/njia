@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
+import { signOut } from "@/lib/auth/actions";
+import type { Role } from "@/lib/auth/roles";
 import { cx } from "@/lib/cx";
 import { isActive, type NavItem } from "@/lib/navigation";
 
 type AppHeaderProps = {
   items: NavItem[];
-  role: "student" | "mentor";
+  role: Role;
   initials: string;
 };
 
@@ -19,7 +21,7 @@ type AppHeaderProps = {
  */
 export function AppHeader({ items, role, initials }: AppHeaderProps) {
   const pathname = usePathname();
-  const mentor = role === "mentor";
+  const roleLabel = role === "mentor" ? "Mentor" : role === "admin" ? "Admin" : null;
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-cream font-body">
@@ -53,11 +55,16 @@ export function AppHeader({ items, role, initials }: AppHeaderProps) {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          {mentor ? <span className="text-small font-semibold text-forest">Mentor</span> : null}
-          <Link href="/" className="flex min-h-11 min-w-11 items-center justify-center rounded-sm px-2 font-semibold">
-            Log out
-          </Link>
-          <Avatar initials={initials} size={40} tone={mentor ? "forest" : "soft"} />
+          {roleLabel ? <span className="text-small font-semibold text-forest">{roleLabel}</span> : null}
+          <form action={signOut} className="m-0">
+            <button
+              type="submit"
+              className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent px-2 font-body text-body font-semibold text-forest underline underline-offset-3 hover:decoration-2"
+            >
+              Log out
+            </button>
+          </form>
+          <Avatar initials={initials} size={40} tone={roleLabel ? "forest" : "soft"} />
         </div>
       </div>
     </header>

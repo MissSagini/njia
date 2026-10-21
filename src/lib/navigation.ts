@@ -50,6 +50,8 @@ export const mentorAppLinks: NavItem[] = [
   { label: "My students", href: "/students", icon: "users" },
 ];
 
+export const adminAppLinks: NavItem[] = [{ label: "Overview", href: "/admin", icon: "list-checks" }];
+
 /** Active when on the link's path or a page beneath it. Query strings are ignored. */
 export function isActive(pathname: string, href: string) {
   const path = href.split("?")[0];
