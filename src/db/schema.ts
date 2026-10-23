@@ -42,7 +42,7 @@ export const consultationStatus = pgEnum("consultation_status", ["booked", "comp
 export const enrolmentStatus = pgEnum("enrolment_status", ["pending_payment", "active", "completed", "cancelled"]);
 export const paymentMethod = pgEnum("payment_method", ["mpesa", "card"]);
 export const paymentStatus = pgEnum("payment_status", ["pending", "succeeded", "failed"]);
-export const sessionStatus = pgEnum("session_status", ["scheduled", "held", "cancelled"]);
+export const sessionStatus = pgEnum("session_status", ["scheduled", "held", "missed", "cancelled"]);
 export const programmeStage = pgEnum("programme_stage", [
   "course_choice",
   "personal_statement",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useOptimistic, useState, useTransition } from "react";
+import { useActionState, useOptimistic, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -12,9 +12,20 @@ import { FormGroup } from "@/components/ui/FormLayout";
 import { Icon } from "@/components/ui/Icon";
 import { TextInput } from "@/components/ui/TextInput";
 import { Toast } from "@/components/ui/Toast";
-import { addTask, bookSession, removeTask, saveSessionNotes, setTaskDone, type BookState, type NotesState, type TaskState } from "@/lib/sessions/actions";
-import type { FreeTime, SessionItem, SessionsData, SessionTask } from "@/lib/sessions/data";
-import { dayKey, formatDay, formatLongDay, formatMonth, formatTime, monthKey, zoneLabel } from "@/lib/time";
+import { TimeChooser } from "@/components/booking/TimeChooser";
+import {
+  addTask,
+  bookSession,
+  cancelSession,
+  removeTask,
+  saveSessionNotes,
+  setSessionOutcome,
+  setTaskDone,
+  type NotesState,
+  type TaskState,
+} from "@/lib/sessions/actions";
+import type { SessionItem, SessionsData, SessionTask } from "@/lib/sessions/data";
+import { formatLongDay, formatMonth, formatTime, monthKey, zoneLabel } from "@/lib/time";
 
 type Mode = "student" | "mentor";
 
@@ -82,7 +93,7 @@ function Progress({ sessions, weeks, timeZone, now }: { sessions: SessionItem[];
   const thisMonth = monthKey(now, timeZone);
   const monthTasks = sessions.filter((s) => monthKey(s.startsAt, timeZone) === thisMonth).flatMap((s) => s.tasks);
   const done = monthTasks.filter((t) => t.done).length;
-  const held = sessions.filter((s) => new Date(s.startsAt) <= now).length;
+  const held = sessions.filter((s) => new Date(s.startsAt) <= now && s.status !== "missed").length;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -136,7 +147,13 @@ function SessionCard({
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             {session.weekNumber ? <span className="type-label text-forest">Week {session.weekNumber}</span> : null}
-            {upcoming ? <Badge variant="tag">Upcoming</Badge> : latest ? <Badge variant="neutral">This week</Badge> : null}
+            {upcoming ? (
+              <Badge variant="tag">Upcoming</Badge>
+            ) : session.status === "missed" ? (
+              <Badge variant="neutral">Missed</Badge>
+            ) : latest ? (
+              <Badge variant="neutral">This week</Badge>
+            ) : null}
           </div>
           <h3 className="m-0 type-heading">{session.weekTitle ?? "Session"}</h3>
           <p className="m-0 flex items-center gap-2 text-body text-ink-muted">
@@ -165,6 +182,16 @@ function SessionCard({
       ) : !upcoming ? (
         <p className="m-0 text-body text-ink-muted">Your mentor hasn&apos;t added notes yet.</p>
       ) : null}
+
+      {upcoming && mode === "student" ? (
+        <p className="m-0 text-body text-ink-muted">Can&apos;t make it? Message your mentor from the My mentor page.</p>
+      ) : null}
+      {upcoming && mode === "mentor" ? (
+        <div>
+          <CancelButton sessionId={session.id} />
+        </div>
+      ) : null}
+      {!upcoming && mode === "mentor" ? <OutcomeControl session={session} /> : null}
 
       {mode === "student" ? <StudentTasks tasks={session.tasks} /> : <MentorTasks session={session} />}
     </article>
@@ -202,28 +229,8 @@ function StudentTasks({ tasks }: { tasks: SessionTask[] }) {
 }
 
 function BookNext({ data, timeZone, hasSessions }: { data: SessionsData; timeZone: string; hasSessions: boolean }) {
-  const [state, action, pending] = useActionState<BookState, FormData>(bookSession, {});
-  const [chosen, setChosen] = useState("");
-  const [taken, setTaken] = useState<Set<string>>(new Set());
-  const [seen, setSeen] = useState(state);
   const [toast, setToast] = useState(false);
-  if (state !== seen) {
-    setSeen(state);
-    if (state.takenId) {
-      setTaken(new Set(taken).add(state.takenId));
-      setChosen("");
-    }
-    if (state.bookedAt) {
-      setChosen("");
-      setToast(true);
-    }
-  }
-
-  const days = useMemo(() => groupByDay(data.freeTimes, timeZone), [data.freeTimes, timeZone]);
-  const [dayKeyChosen, setDayKey] = useState(days[0]?.key ?? "");
-  const day = days.find((d) => d.key === dayKeyChosen) ?? days[0];
   const mentorFirst = data.mentor?.fullName.split(" ")[0] ?? "your mentor";
-
   const toastEl = toast ? <Toast onDismiss={() => setToast(false)}>You&apos;re booked!</Toast> : null;
 
   if (data.bookingBlock === "upcoming") return toastEl;
@@ -236,7 +243,7 @@ function BookNext({ data, timeZone, hasSessions }: { data: SessionsData; timeZon
   }
 
   const title = hasSessions ? "Book your next session" : "Book your first session";
-  if (days.length === 0) {
+  if (data.freeTimes.length === 0) {
     return (
       <>
         {toastEl}
@@ -256,44 +263,55 @@ function BookNext({ data, timeZone, hasSessions }: { data: SessionsData; timeZon
           {`${mentorFirst}'s free times, in East Africa Time (EAT). Sessions are 1 hour on Google Meet.`}
         </p>
       </header>
-      <form action={action} className="m-0 flex flex-col gap-4">
-        <input type="hidden" name="availabilityId" value={chosen} />
-        <FormGroup legend="Day" className="gap-2">
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {days.map((d) => (
-              <ChoiceChip key={d.key} label={d.label} selected={d.key === day.key} onPick={() => setDayKey(d.key)} />
-            ))}
-          </div>
-        </FormGroup>
-        <FormGroup legend="Time" className="gap-2">
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {day.times.map((t) => (
-              <ChoiceChip
-                key={t.id}
-                label={formatTime(t.startsAt, timeZone)}
-                selected={t.id === chosen}
-                disabled={taken.has(t.id)}
-                onPick={() => setChosen(t.id)}
-              />
-            ))}
-          </div>
-        </FormGroup>
-        {state.error ? <Banner tone="error">{state.error}</Banner> : null}
-        <Button type="submit" variant="primary" fullWidth loading={pending} disabled={!chosen && !pending}>
-          {pending ? "Booking your session…" : chosen ? "Book this time" : "Choose a time first"}
-        </Button>
-      </form>
+      <TimeChooser freeTimes={data.freeTimes} timeZone={timeZone} action={bookSession} onDone={() => setToast(true)} labels={["Book this time", "Booking your session…"]} />
     </section>
   );
 }
 
-function groupByDay(times: FreeTime[], timeZone: string) {
-  const byDay = new Map<string, FreeTime[]>();
-  for (const t of times) {
-    const key = dayKey(t.startsAt, timeZone);
-    byDay.set(key, [...(byDay.get(key) ?? []), t]);
+/** The mentor cancels, with a second, inline step instead of a browser dialog. */
+function CancelButton({ sessionId }: { sessionId: string }) {
+  const [asking, setAsking] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string>();
+  if (!asking) {
+    return (
+      <Button variant="ghost" size="md" onClick={() => setAsking(true)}>
+        Cancel session
+      </Button>
+    );
   }
-  return [...byDay.entries()].map(([key, list]) => ({ key, label: formatDay(list[0].startsAt, timeZone), times: list }));
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-line bg-cream p-3">
+      <p className="m-0 text-body">
+        Cancel this session? The time goes back on offer. Let your student know on WhatsApp too.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" size="md" loading={pending} onClick={() => start(async () => setError((await cancelSession(sessionId)).error))}>
+          {pending ? "Cancelling…" : "Yes, cancel it"}
+        </Button>
+        <Button variant="ghost" size="md" disabled={pending} onClick={() => setAsking(false)}>
+          Keep it
+        </Button>
+      </div>
+      {error ? <Banner tone="error">{error}</Banner> : null}
+    </div>
+  );
+}
+
+/** The mentor says whether a past session happened. */
+function OutcomeControl({ session }: { session: SessionItem }) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string>();
+  const pick = (outcome: "held" | "missed") => start(async () => setError((await setSessionOutcome(session.id, outcome)).error));
+  return (
+    <FormGroup legend="Did it happen?" className="gap-2">
+      <div className="grid max-w-[360px] grid-cols-2 gap-2">
+        <ChoiceChip label="Held" selected={session.status === "held"} disabled={pending} onPick={() => pick("held")} />
+        <ChoiceChip label="Missed" selected={session.status === "missed"} disabled={pending} onPick={() => pick("missed")} />
+      </div>
+      <FieldHelp id={`outcome-${session.id}`} error={error} />
+    </FormGroup>
+  );
 }
 
 // ---------------------------------------------------------------- mentor: notes and tasks

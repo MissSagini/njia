@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, gt, inArray, ne, sum } from "drizzle-orm";
 import { asUser, schema } from "@/db";
 import type { Viewer } from "@/lib/auth/dal";
+import { CALL_CHANGE_NOTICE_HOURS } from "@/lib/calls/data";
 
 export type MyMentorData = {
   firstName: string;
@@ -21,7 +22,7 @@ export type MyMentorData = {
   /** Charges minus succeeded payments, in shillings. Never stored. */
   balanceKes: number;
   /** The free call, if it's still to come. */
-  upcomingCall: { startsAt: string; meetLink: string | null } | null;
+  upcomingCall: { startsAt: string; meetLink: string | null; canChange: boolean } | null;
   nextSession: { startsAt: string; meetLink: string | null } | null;
 };
 
@@ -87,7 +88,13 @@ export async function myMentor(viewer: Viewer): Promise<MyMentorData | null> {
           }
         : null,
       balanceKes,
-      upcomingCall: call[0] ? { startsAt: call[0].startsAt.toISOString(), meetLink: call[0].meetLink } : null,
+      upcomingCall: call[0]
+        ? {
+            startsAt: call[0].startsAt.toISOString(),
+            meetLink: call[0].meetLink,
+            canChange: call[0].startsAt.getTime() > now.getTime() + CALL_CHANGE_NOTICE_HOURS * 3_600_000,
+          }
+        : null,
       nextSession: session ? { startsAt: session.startsAt.toISOString(), meetLink: session.meetLink } : null,
     };
   });

@@ -163,15 +163,12 @@ export async function submitGoals(_prev: GoalsState, formData: FormData): Promis
     return { values, error: SOMETHING_WRONG };
   }
 
-  // Free-call students can log in straight away. Apply-now students get this email once they've paid.
-  let emailSent = false;
-  if (path === START_PATHS.call) {
-    const { error } = await supabase.auth.resetPasswordForEmail(goals.email, {
-      redirectTo: `${serverEnv().NEXT_PUBLIC_SITE_URL}/auth/confirm`,
-    });
-    emailSent = !error;
-    if (error) console.error("get-started: password email failed", error.code ?? error.status);
-  }
+  // Everyone can log in straight away, so someone who leaves before paying can come back and pay on My mentor
+  const { error: mailError } = await supabase.auth.resetPasswordForEmail(goals.email, {
+    redirectTo: `${serverEnv().NEXT_PUBLIC_SITE_URL}/auth/confirm`,
+  });
+  const emailSent = !mailError;
+  if (mailError) console.error("get-started: password email failed", mailError.code ?? mailError.status);
 
   const inviteSent = !!call && calendarConnected();
   if (call && inviteSent) {

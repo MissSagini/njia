@@ -160,6 +160,67 @@ export async function setTaskDone(taskId: string, done: boolean): Promise<{ erro
   return {};
 }
 
+/** The mentor cancels an upcoming session and frees its time. Students can't cancel or move sessions. */
+export async function cancelSession(sessionId: string): Promise<{ error?: string }> {
+  const viewer = await requireViewer(["mentor"]);
+  const row = await mentorSessionRow(viewer, sessionId);
+  if (!row) return { error: SOMETHING_WRONG };
+  const { session } = row;
+  if (session.status !== "scheduled" || session.startsAt <= new Date()) return { error: "Only upcoming sessions can be cancelled." };
+
+  await adminDb().transaction(async (tx) => {
+    // Letting go of the free time puts it back on offer
+    await tx.update(schema.sessions).set({ status: "cancelled", availabilityId: null }).where(eq(schema.sessions.id, session.id));
+    await tx.insert(schema.activityLog).values({
+      studentId: row.studentId,
+      actorProfileId: viewer.profileId,
+      eventType: "session_cancelled",
+      details: { sessionId: session.id, startsAt: session.startsAt.toISOString() },
+    });
+  });
+  await logAccess(viewer, row.studentId, "update", "sessions");
+  refresh();
+  return {};
+}
+
+/** The mentor records whether a past session happened. */
+export async function setSessionOutcome(sessionId: string, outcome: "held" | "missed"): Promise<{ error?: string }> {
+  const viewer = await requireViewer(["mentor"]);
+  if (outcome !== "held" && outcome !== "missed") return { error: SOMETHING_WRONG };
+  const row = await mentorSessionRow(viewer, sessionId);
+  if (!row || row.session.status === "cancelled") return { error: SOMETHING_WRONG };
+  if (row.session.startsAt > new Date()) return { error: "You can mark a session once it has started." };
+  if (row.session.status === outcome) return {};
+
+  await adminDb().transaction(async (tx) => {
+    await tx.update(schema.sessions).set({ status: outcome }).where(eq(schema.sessions.id, row.session.id));
+    await tx.insert(schema.activityLog).values({
+      studentId: row.studentId,
+      actorProfileId: viewer.profileId,
+      eventType: `session_${outcome}`,
+      details: { sessionId: row.session.id },
+    });
+  });
+  await logAccess(viewer, row.studentId, "update", "sessions");
+  refresh();
+  return {};
+}
+
+/** A session the signed-in mentor runs, as a full row with its student, or null. */
+async function mentorSessionRow(viewer: Viewer, sessionId: string) {
+  if (!z.uuid().safeParse(sessionId).success) return null;
+  return asUser(viewer.claims, async (tx) => {
+    const mentor = await tx.query.mentors.findFirst({ where: eq(schema.mentors.profileId, viewer.profileId) });
+    if (!mentor) return null;
+    const [row] = await tx
+      .select({ session: schema.sessions, studentId: schema.enrolments.studentId })
+      .from(schema.sessions)
+      .innerJoin(schema.enrolments, eq(schema.enrolments.id, schema.sessions.enrolmentId))
+      .where(and(eq(schema.sessions.id, sessionId), eq(schema.sessions.mentorId, mentor.id)));
+    return row ?? null;
+  });
+}
+
 // ---------------------------------------------------------------- mentor: notes and tasks
 
 /** A session the signed-in mentor runs, with its student, or null. */

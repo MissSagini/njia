@@ -15,7 +15,7 @@ export type SessionItem = {
   endsAt: string;
   weekNumber: number | null;
   weekTitle: string | null;
-  status: "scheduled" | "held" | "cancelled";
+  status: "scheduled" | "held" | "missed" | "cancelled";
   meetLink: string | null;
   mentorNotes: string | null;
   tasks: SessionTask[];

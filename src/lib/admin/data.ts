@@ -123,7 +123,7 @@ export async function studentDetail(viewer: Viewer, studentId: string): Promise<
       ? await tx
           .select({ n: sql<number>`count(*)::int` })
           .from(sessions)
-          .where(and(eq(sessions.enrolmentId, enrolment.id), ne(sessions.status, "cancelled"), lt(sessions.startsAt, new Date())))
+          .where(and(eq(sessions.enrolmentId, enrolment.id), inArray(sessions.status, ["scheduled", "held"]), lt(sessions.startsAt, new Date())))
       : [{ n: 0 }];
 
     const mentorRows = await tx

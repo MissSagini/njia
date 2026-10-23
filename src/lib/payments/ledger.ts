@@ -1,8 +1,6 @@
 import "server-only";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { adminDb, schema } from "@/db";
-import { serverEnv } from "@/lib/env";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { Verified } from "./paystack";
 
 /**
@@ -58,7 +56,7 @@ export async function loadCheckout(enrolmentId: string): Promise<Checkout | null
 /** What happens next, shown once a payment has gone through. */
 export function afterPaidText(startPath: "free_call" | "apply_now") {
   return startPath === "apply_now"
-    ? "We'll pair you with a mentor within 2 days. We've emailed you a link to choose a password and log in; if it hasn't arrived in a few minutes, use “Forgot your password?” on the log in page."
+    ? "We'll pair you with a mentor within 2 days. Log in any time to see your mentor; if you haven't set a password yet, use “Forgot your password?” on the log in page."
     : "We'll pair you with a mentor within 2 days and email you when it's done.";
 }
 
@@ -137,16 +135,5 @@ export async function settle(reference: string, verified: Verified): Promise<Set
     return { becamePaid, enrolment };
   });
 
-  if (outcome?.becamePaid) await sendLoginLinkIfNeeded(outcome.enrolment.studentId);
   return { status, failureReason, becamePaid: outcome?.becamePaid ?? false };
-}
-
-/** Apply-now students can't log in until they've paid; send their set-password email now. */
-async function sendLoginLinkIfNeeded(studentId: string) {
-  const student = await adminDb().query.students.findFirst({ where: eq(schema.students.id, studentId) });
-  if (!student || student.startPath !== "apply_now") return;
-  const { error } = await createAdminClient().auth.resetPasswordForEmail(student.email, {
-    redirectTo: `${serverEnv().NEXT_PUBLIC_SITE_URL}/auth/confirm`,
-  });
-  if (error) console.error("payments: login email failed", error.code ?? error.status);
 }

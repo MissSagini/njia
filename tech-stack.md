@@ -108,7 +108,7 @@ Students are often under 18, so this is a core requirement.
 1. **M-Pesa limits.** KSh 250,000 is at or near M-Pesa's per-transaction limit, and the payer needs that balance in their wallet. Confirm current per-transaction, daily and wallet limits with Safaricom. The charges-and-payments design allows a charge to be paid in parts.
 2. **Paystack go-live.** Needs a registered business and Paystack's account activation (business documents) before live keys work. Start this alongside development.
 3. **Card limits.** Many Kenyan cards have limits below KSh 250,000. Show a clear error and offer M-Pesa as the alternative.
-4. **Apply-now checkout.** The student and enrolment records are created when Goals is submitted. Payment attaches to the charge, and the login link is sent once payment succeeds.
+4. **Apply-now checkout.** The student and enrolment records are created when Goals is submitted, and the set-password email goes out then on both paths, so a student who leaves before paying can log in and pay later. Payment attaches to the charge.
 5. **Data protection paperwork.** Privacy policy, consent wording, retention rule and provider agreements, ideally reviewed by a local advisor before launch.
 
 ---

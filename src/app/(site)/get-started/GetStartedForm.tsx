@@ -104,7 +104,8 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
             error={
               state.emailTaken ? (
                 <span>
-                  This email already has a Njia account. <Link href="/log-in">Log in</Link> to see your mentor and sessions.
+                  This email already has a Njia account. <Link href="/log-in">Log in</Link> to carry on. If you haven&apos;t set a
+                  password yet, use <Link href="/forgot-password">Forgot your password?</Link>
                 </span>
               ) : (
                 errors.email
@@ -187,6 +188,9 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
           label="My parent or guardian agrees to Njia keeping these details to run my mentorship."
         />
         <FieldHelp id="consent-help" error={errors.consent} />
+        <Link href="/privacy" target="_blank" className="inline-flex min-h-11 items-center self-start rounded-sm pl-8">
+          How we look after your details
+        </Link>
       </div>
 
       {state.error ? <Banner tone="error">{state.error}</Banner> : null}
@@ -329,7 +333,9 @@ function Confirmation({ done, ref }: { done: NonNullable<GoalsState["done"]>; re
     : [
         "Payment is the next step. We'll email you about paying by M-Pesa or card.",
         "Once you've paid, we pair you with a mentor within 2 days.",
-        `We'll send a link to ${done.email} so you can choose a password and log in.`,
+        done.emailSent
+          ? `We've sent a link to ${done.email} so you can choose a password, log in and pay any time.`
+          : `To log in and pay later, use “Forgot your password?” on the log in page with ${done.email}.`,
       ];
 
   return (

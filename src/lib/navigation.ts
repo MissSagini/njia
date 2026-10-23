@@ -21,6 +21,7 @@ export const footerColumns: { title: string; links: NavItem[] }[] = [
       { label: "How it works", href: "/how-it-works" },
       { label: "Mentors", href: "/mentors" },
       { label: "For parents", href: "/for-parents" },
+      { label: "Privacy", href: "/privacy" },
     ],
   },
   {

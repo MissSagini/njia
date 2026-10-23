@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { PaymentPanel } from "@/components/payments/PaymentPanel";
+import { FreeCallControls } from "./FreeCallControls";
 import { Avatar } from "@/components/ui/Avatar";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { initialsFor, requireViewer } from "@/lib/auth/dal";
+import { openCallSlots } from "@/lib/calls/data";
 import { paystackEnv } from "@/lib/env";
 import { formatKes } from "@/lib/money";
 import { loadCheckout } from "@/lib/payments/ledger";
@@ -59,7 +61,9 @@ async function Loaded() {
 
 const when = (iso: string) => `${formatLongDayEat(iso)} at ${formatTimeEat(iso)} EAT`;
 
-function FreeCall({ call }: { call: NonNullable<MyMentorData["upcomingCall"]> }) {
+async function FreeCall({ call }: { call: NonNullable<MyMentorData["upcomingCall"]> }) {
+  // Other open times, to move the call to
+  const openTimes = call.canChange ? await openCallSlots().catch(() => []) : [];
   return (
     <Card eyebrow="Your free call" title={when(call.startsAt)}>
       {call.meetLink ? (
@@ -71,6 +75,7 @@ function FreeCall({ call }: { call: NonNullable<MyMentorData["upcomingCall"]> })
       ) : (
         "We'll email you and your parent the Google Meet link before the call."
       )}
+      <FreeCallControls openTimes={openTimes} canChange={call.canChange} />
     </Card>
   );
 }
