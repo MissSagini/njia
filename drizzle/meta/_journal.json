@@ -29,6 +29,27 @@
       "when": 1792272002455,
       "tag": "0003_remove_2fa_requirement",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792786661875,
+      "tag": "0004_packages",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792786662924,
+      "tag": "0005_packages_security_and_seed",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792787288250,
+      "tag": "0006_log_actor_set_null",
+      "breakpoints": true
     }
   ]
 }

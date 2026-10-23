@@ -169,6 +169,20 @@ export const mentorAvailability = pgTable(
 
 // ---------------------------------------------------------------- money (ledger)
 
+/** What Njia sells. New enrolments copy the active package's name, price and length. */
+export const packages = pgTable(
+  "packages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    priceKes: integer("price_kes").notNull(),
+    weeks: smallint("weeks").notNull(),
+    active: boolean("active").notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [check("package_price_positive", sql`${t.priceKes} > 0`)],
+).enableRLS();
+
 /** A student's mentorship package. The agreed price lives here, never in code. */
 export const enrolments = pgTable(
   "enrolments",
