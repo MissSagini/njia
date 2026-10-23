@@ -81,6 +81,7 @@ try {
       insert into enrolments (student_id, package_name, price_kes, weeks, status, mentor_id, paired_at, starts_on)
       values (${student.id}, ${pkg.name}, ${pkg.price_kes}, ${pkg.weeks}, 'active', ${mentor.id}, now() - interval '8 days', current_date - 8)
       returning id`;
+    await sql`insert into charges (enrolment_id, description, amount_kes, due_on) values (${enrolment.id}, ${pkg.name}, ${pkg.price_kes}, current_date - 8)`;
 
     // A session held last week, with notes and this week's tasks
     const lastWeek = new Date(Date.now() - 6 * 86_400_000);

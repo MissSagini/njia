@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -10,9 +10,10 @@ import { ChoiceChip } from "@/components/ui/ChoiceChip";
 import { FieldHelp } from "@/components/ui/Field";
 import { FormGroup, FormRow } from "@/components/ui/FormLayout";
 import { Icon } from "@/components/ui/Icon";
+import { UniversityPicker } from "@/components/goals/UniversityPicker";
 import { Select } from "@/components/ui/Select";
 import { TextInput } from "@/components/ui/TextInput";
-import { EXAM_TYPES, MAX_UNIVERSITIES, START_PATHS, UNIVERSITY_SUGGESTIONS, type StartPath } from "@/lib/goals";
+import { EXAM_TYPES, START_PATHS, type StartPath } from "@/lib/goals";
 import { formatKes } from "@/lib/money";
 import { dayKeyEat, formatDayEat, formatLongDayEat, formatTimeEat } from "@/lib/time";
 import { submitGoals, type GoalsState } from "./actions";
@@ -209,75 +210,6 @@ function Section({ title, description, children }: { title: string; description?
       </header>
       {children}
     </section>
-  );
-}
-
-function UniversityPicker({ initial, error }: { initial?: string; error?: string }) {
-  const [chosen, setChosen] = useState<string[]>(() => (initial ? initial.split("\n").filter(Boolean) : []));
-  const [draft, setDraft] = useState("");
-  const [limitHit, setLimitHit] = useState(false);
-  const options = useMemo(() => [...new Set([...UNIVERSITY_SUGGESTIONS, ...chosen])], [chosen]);
-  const full = chosen.length >= MAX_UNIVERSITIES;
-
-  function toggle(name: string) {
-    setChosen((list) => {
-      if (list.includes(name)) return list.filter((c) => c !== name);
-      return list.length >= MAX_UNIVERSITIES ? list : [...list, name];
-    });
-    setLimitHit(!chosen.includes(name) && full);
-  }
-
-  function addDraft() {
-    const name = draft.trim().replace(/\s+/g, " ");
-    if (!name) return;
-    const match = options.find((o) => o.toLowerCase() === name.toLowerCase());
-    if (match && chosen.includes(match)) return setDraft("");
-    if (full) return setLimitHit(true);
-    setChosen((list) => (list.length >= MAX_UNIVERSITIES ? list : [...list, match ?? name]));
-    setDraft("");
-  }
-
-  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addDraft();
-    }
-  }
-
-  return (
-    <FormGroup
-      legend="Dream universities"
-      hint={`Choose up to ${MAX_UNIVERSITIES}. ${chosen.length} of ${MAX_UNIVERSITIES} chosen.`}
-      className="gap-2"
-    >
-      {chosen.map((c) => (
-        <input key={c} type="hidden" name="dreamUniversities" value={c} />
-      ))}
-      <div className="grid grid-cols-2 gap-2 pt-1 outline-none sm:grid-cols-3" data-error={error ? "true" : undefined} tabIndex={error ? -1 : undefined}>
-        {options.map((o) => (
-          <ChoiceChip key={o} label={o} selected={chosen.includes(o)} onPick={() => toggle(o)} />
-        ))}
-      </div>
-      <div className="flex items-end gap-2">
-        <TextInput
-          label="Another university"
-          optional
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="For example, University of Bristol"
-          className="flex-1"
-          maxLength={80}
-        />
-        <Button size="md" variant="outline" onClick={addDraft} className="mb-0">
-          Add
-        </Button>
-      </div>
-      <FieldHelp
-        id="universities-help"
-        error={limitHit ? `You've chosen ${MAX_UNIVERSITIES}. Remove one to add another.` : error}
-      />
-    </FormGroup>
   );
 }
 

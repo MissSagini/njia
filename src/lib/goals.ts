@@ -36,17 +36,41 @@ export function normaliseKenyanPhone(input: string): string | null {
   return /^[17]\d{8}$/.test(digits) ? `+254${digits}` : null;
 }
 
+/** "+254 712 345 678" for display. Leaves anything else as it is. */
+export function formatKenyanPhone(e164: string) {
+  const m = /^\+254(\d{3})(\d{3})(\d{3})$/.exec(e164);
+  return m ? `+254 ${m[1]} ${m[2]} ${m[3]}` : e164;
+}
+
 const text = (max: number, empty: string) => z.string().trim().min(1, empty).max(max, "That's a bit long. Shorten it, please.");
+
+const email = (empty: string, example: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, empty)
+    .pipe(z.email(`Enter an email like ${example}.`))
+    .transform((e) => e.toLowerCase());
+
+/** The parts a student can change later, on My goals. */
+const editableFields = {
+  examType: z.enum(EXAM_TYPES, "Choose the exams you're taking."),
+  courseInterest: text(120, "Tell us which course you'd like to study."),
+  dreamUniversities: z
+    .array(z.string().trim().min(1).max(80))
+    .min(1, "Choose at least one university.")
+    .max(MAX_UNIVERSITIES, `Choose up to ${MAX_UNIVERSITIES} universities.`)
+    .transform((list) => [...new Set(list)]),
+  parentName: text(120, "Enter your parent or guardian's name."),
+  parentEmail: email("Enter your parent or guardian's email.", "parent@gmail.com"),
+};
+
+export const PARENT_EMAIL_DIFFERENT = "Use your parent's own email, so they get the weekly report.";
 
 export const goalsSchema = z
   .object({
     fullName: text(120, "Enter your full name."),
-    email: z
-      .string()
-      .trim()
-      .min(1, "Enter your email address.")
-      .pipe(z.email("Enter an email like cynthia@gmail.com."))
-      .transform((e) => e.toLowerCase()),
+    email: email("Enter your email address.", "cynthia@gmail.com"),
     phone: z
       .string()
       .trim()
@@ -60,26 +84,15 @@ export const goalsSchema = z
         return e164;
       }),
     school: z.string().trim().max(120, "That's a bit long. Shorten it, please.").optional().transform((s) => s || null),
-    examType: z.enum(EXAM_TYPES, "Choose the exams you're taking."),
-    courseInterest: text(120, "Tell us which course you'd like to study."),
-    dreamUniversities: z
-      .array(z.string().trim().min(1).max(80))
-      .min(1, "Choose at least one university.")
-      .max(MAX_UNIVERSITIES, `Choose up to ${MAX_UNIVERSITIES} universities.`)
-      .transform((list) => [...new Set(list)]),
+    ...editableFields,
     helpNeeded: text(2000, "Tell us what you'd like help with."),
-    parentName: text(120, "Enter your parent or guardian's name."),
-    parentEmail: z
-      .string()
-      .trim()
-      .min(1, "Enter your parent or guardian's email.")
-      .pipe(z.email("Enter an email like parent@gmail.com."))
-      .transform((e) => e.toLowerCase()),
   })
-  .refine((g) => g.parentEmail !== g.email, {
-    path: ["parentEmail"],
-    message: "Use your parent's own email, so they get the weekly report.",
-  });
+  .refine((g) => g.parentEmail !== g.email, { path: ["parentEmail"], message: PARENT_EMAIL_DIFFERENT });
+
+/** My goals. The caller checks the parent's email isn't the student's own (see PARENT_EMAIL_DIFFERENT). */
+export const editGoalsSchema = z.object(editableFields);
 
 export type Goals = z.output<typeof goalsSchema>;
 export type GoalsField = keyof z.input<typeof goalsSchema>;
+export type EditableGoals = z.output<typeof editGoalsSchema>;
+export type EditableGoalsField = keyof z.input<typeof editGoalsSchema>;

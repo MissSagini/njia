@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { SessionsView } from "@/components/sessions/SessionsView";
+import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { requireViewer } from "@/lib/auth/dal";
 import { mentees, menteeSessions } from "@/lib/sessions/data";
+import { menteeGoals, type StudentGoals } from "@/lib/students/goals";
+import { formatLongDay } from "@/lib/time";
 import { StudentSwitcher } from "./StudentSwitcher";
 
 export const metadata: Metadata = { title: "Sessions" };
@@ -30,11 +33,12 @@ async function Mentee({ params }: Pick<PageProps<"/students/[studentId]">, "para
   const { studentId } = await params;
   const viewer = await requireViewer(["mentor"]);
 
-  let list, data;
+  let list, data, goals;
   try {
     list = await mentees(viewer);
     // Only students paired with this mentor: RLS returns nothing for anyone else
-    data = list?.students.some((s) => s.studentId === studentId) ? await menteeSessions(viewer, studentId) : null;
+    const paired = list?.students.some((s) => s.studentId === studentId);
+    [data, goals] = paired ? await Promise.all([menteeSessions(viewer, studentId), menteeGoals(viewer, studentId)]) : [null, null];
   } catch (error) {
     console.error("mentee: load failed", (error as { code?: string }).code);
     return <Banner tone="error">These sessions didn&apos;t load. Refresh the page to try again.</Banner>;
@@ -53,7 +57,44 @@ async function Mentee({ params }: Pick<PageProps<"/students/[studentId]">, "para
         <h1 className="m-0 type-title">{data.student.fullName}</h1>
         {list.students.length > 1 ? <StudentSwitcher students={list.students} current={studentId} /> : null}
       </div>
+      {goals ? <Goals goals={goals} timeZone={list.timeZone} /> : null}
       <SessionsView data={data} mode="mentor" timeZone={list.timeZone} />
     </>
+  );
+}
+
+/** What the student is aiming for. They edit it on My goals, so it's always current. */
+function Goals({ goals, timeZone }: { goals: StudentGoals; timeZone: string }) {
+  return (
+    <section className="flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="m-0 type-heading">Goals</h2>
+        <span className="text-small text-ink-muted">Updated {formatLongDay(goals.updatedAt, timeZone)}</span>
+      </header>
+      <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-small font-semibold text-ink-muted">Course</dt>
+          <dd className="m-0 text-body">{goals.courseInterest}</dd>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-small font-semibold text-ink-muted">Exams</dt>
+          <dd className="m-0 text-body">{goals.examType}</dd>
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <dt className="text-small font-semibold text-ink-muted">Dream universities</dt>
+          <dd className="m-0 flex flex-wrap gap-2">
+            {goals.dreamUniversities.map((u) => (
+              <Badge key={u} variant="tag">
+                {u}
+              </Badge>
+            ))}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-0.5 sm:col-span-2">
+          <dt className="text-small font-semibold text-ink-muted">Wants help with</dt>
+          <dd className="m-0 text-body whitespace-pre-line">{goals.helpNeeded}</dd>
+        </div>
+      </dl>
+    </section>
   );
 }
