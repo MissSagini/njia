@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminPage, LoadError, Panel, StudentStatus } from "@/components/admin/AdminPage";
+import { SendReportsNow } from "@/components/admin/ReportButtons";
 import { Banner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { allMentors, allStudents, callSlots, PAIRING_DAYS } from "@/lib/admin/data";
+import { lastReportRun } from "@/lib/reports/weekly";
 import { requireViewer } from "@/lib/auth/dal";
 import { formatDayEat, formatTimeEat } from "@/lib/time";
 
@@ -19,9 +21,9 @@ export default function AdminOverviewPage() {
 
 async function Overview() {
   const viewer = await requireViewer(["admin"]);
-  let students, slots, mentors;
+  let students, slots, mentors, lastReports;
   try {
-    [students, slots, mentors] = await Promise.all([allStudents(viewer), callSlots(viewer), allMentors(viewer)]);
+    [students, slots, mentors, lastReports] = await Promise.all([allStudents(viewer), callSlots(viewer), allMentors(viewer), lastReportRun()]);
   } catch (error) {
     console.error("admin: overview failed", (error as { code?: string }).code);
     return <LoadError what="The overview" />;
@@ -96,6 +98,15 @@ async function Overview() {
           )}
         </Panel>
       </div>
+
+      <Panel
+        title="Parent reports"
+        description={`Sent automatically every Friday at 5 pm EAT to the parents of paired, paid students. ${
+          lastReports ? `Last sent ${formatDayEat(lastReports.at)} (${lastReports.count} for ${lastReports.week}).` : "None sent yet."
+        }`}
+      >
+        <SendReportsNow />
+      </Panel>
     </div>
   );
 }

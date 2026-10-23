@@ -56,6 +56,21 @@ export function paystackEnv() {
   return key ? { PAYSTACK_SECRET_KEY: key, live: key.startsWith("sk_live_") } : null;
 }
 
+/**
+ * Resend, for emails Njia sends itself (the weekly parent report), or null until
+ * the API key is set. Until a domain is verified, Resend only delivers from its
+ * test sender to the account owner's own address.
+ */
+export function resendEnv() {
+  const key = process.env.RESEND_API_KEY;
+  return key ? { RESEND_API_KEY: key, EMAIL_FROM: process.env.EMAIL_FROM || "Njia <onboarding@resend.dev>" } : null;
+}
+
+/** Shared secret Vercel Cron sends as "Authorization: Bearer …", or null if unset. */
+export function cronSecret() {
+  return process.env.CRON_SECRET || null;
+}
+
 /** Server-only values, including secrets. */
 export function serverEnv() {
   const parsed = serverSchema.safeParse({ ...process.env, NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || undefined });

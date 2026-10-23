@@ -9,6 +9,9 @@ import { serverEnv } from "@/lib/env";
 import { contactSchema, PARENT_EMAIL_DIFFERENT, type ContactField } from "@/lib/goals";
 import { meetLinkSchema } from "@/lib/links";
 import { activateIfPaid } from "@/lib/payments/ledger";
+import { sendEmail } from "@/lib/email/send";
+import { buildWeeklyReport, renderWeeklyReport, sendWeeklyReports } from "@/lib/reports/weekly";
+import { resendEnv } from "@/lib/env";
 import { MENTOR_TIME_ZONES } from "./options";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EAT, isTimeZone, zonedToUtc } from "@/lib/time";
@@ -414,4 +417,39 @@ export async function recordPayment(_prev: RecordPaymentState, formData: FormDat
   await logAccess(viewer, studentId, "update", "payments");
   refresh();
   return { saved: Date.now() };
+}
+
+// ---------------------------------------------------------------- weekly parent report
+
+export type ReportState = { error?: string; message?: string };
+
+const NO_EMAIL = "Email isn't set up yet: add RESEND_API_KEY to .env.local.";
+
+/** Sends this week's report to every paired student's parent who hasn't had it yet. */
+export async function sendReportsNow(): Promise<ReportState> {
+  await requireViewer(["admin"]);
+  if (!resendEnv()) return { error: NO_EMAIL };
+  const r = await sendWeeklyReports();
+  refresh();
+  if (r.failed) {
+    return { error: `Sent ${r.sent}, but ${r.failed} didn't go: ${r.errors.join("; ")}` };
+  }
+  return { message: r.sent ? `Sent ${r.sent} ${r.sent === 1 ? "report" : "reports"}.` : "Every parent already has this week's report." };
+}
+
+/** Sends one student's report to the signed-in admin, to check it before parents get it. */
+export async function sendReportTest(studentId: string): Promise<ReportState> {
+  const viewer = await requireViewer(["admin"]);
+  if (!resendEnv()) return { error: NO_EMAIL };
+  if (!z.uuid().safeParse(studentId).success) return { error: SOMETHING_WRONG };
+  const report = await buildWeeklyReport(studentId);
+  if (!report) return { error: "Reports start once the student has paid and been paired." };
+  try {
+    const email = renderWeeklyReport(report);
+    await sendEmail({ to: viewer.email, ...email, subject: `[Test] ${email.subject}` });
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
+  await logAccess(viewer, studentId, "view", "weekly_report");
+  return { message: `Sent a test to ${viewer.email}.` };
 }

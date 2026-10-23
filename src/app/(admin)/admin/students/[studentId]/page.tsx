@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminPage, Detail, LoadError, Panel, StudentStatus } from "@/components/admin/AdminPage";
 import { CallEditor } from "@/components/admin/CallEditor";
 import { CopyLink } from "@/components/admin/CopyLink";
+import { SendReportTest } from "@/components/admin/ReportButtons";
 import { ContactDetails, RecordPaymentForm } from "@/components/admin/StudentForms";
 import { PairForm } from "@/components/admin/PairForm";
 import { Badge } from "@/components/ui/Badge";
@@ -13,6 +14,7 @@ import { requireViewer } from "@/lib/auth/dal";
 import { serverEnv } from "@/lib/env";
 import { formatKes } from "@/lib/money";
 import { payPath } from "@/lib/payments/link";
+import { buildWeeklyReport, renderWeeklyReport } from "@/lib/reports/weekly";
 import { formatLongDayEat, formatTimeEat } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Student" };
@@ -135,6 +137,8 @@ async function Student({ params }: Pick<PageProps<"/admin/students/[studentId]">
         />
       </Panel>
 
+      <WeeklyReportPreview studentId={s.id} firstName={s.fullName.split(" ")[0]} />
+
       <Panel title="Free calls" description="Times in East Africa Time.">
         {calls.length ? (
           <ul className="m-0 flex list-none flex-col gap-6 p-0">
@@ -152,5 +156,24 @@ async function Student({ params }: Pick<PageProps<"/admin/students/[studentId]">
         )}
       </Panel>
     </div>
+  );
+}
+
+/** What this week's parent report would say, as text, with a way to send it to yourself. */
+async function WeeklyReportPreview({ studentId, firstName }: { studentId: string; firstName: string }) {
+  const report = await buildWeeklyReport(studentId).catch(() => null);
+  return (
+    <Panel title="Weekly parent report" description={report ? `What ${report.parentName} would get this week.` : undefined}>
+      {report ? (
+        <>
+          <pre className="m-0 rounded-md border border-line bg-cream p-4 font-body text-small whitespace-pre-wrap text-ink">
+            {renderWeeklyReport(report).text}
+          </pre>
+          <SendReportTest studentId={studentId} />
+        </>
+      ) : (
+        <p className="m-0 text-body text-ink-muted">Reports start once {firstName} has paid and been paired with a mentor.</p>
+      )}
+    </Panel>
   );
 }
