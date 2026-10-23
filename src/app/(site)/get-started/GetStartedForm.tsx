@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -11,10 +12,11 @@ import { FieldHelp } from "@/components/ui/Field";
 import { FormGroup, FormRow } from "@/components/ui/FormLayout";
 import { Icon } from "@/components/ui/Icon";
 import { UniversityPicker } from "@/components/goals/UniversityPicker";
+import { PackageSummaryCard } from "@/components/payments/PackageSummaryCard";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { TextInput } from "@/components/ui/TextInput";
 import { EXAM_TYPES, START_PATHS, type StartPath } from "@/lib/goals";
-import { formatKes } from "@/lib/money";
 import { dayKeyEat, formatDayEat, formatLongDayEat, formatTimeEat } from "@/lib/time";
 import { submitGoals, type GoalsState } from "./actions";
 import type { CallSlot, PackageSummary } from "./data";
@@ -48,14 +50,16 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
   const values = state.values ?? {};
   const errors = state.fieldErrors ?? {};
   const top = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Scroll to the confirmation, or to the first problem, after each submit
   useEffect(() => {
-    if (state.done) top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (state.done?.payUrl) router.push(state.done.payUrl);
+    else if (state.done) top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     else if (state.error || state.fieldErrors) {
       document.querySelector<HTMLElement>("[aria-invalid='true'], [data-error='true']")?.focus();
     }
-  }, [state]);
+  }, [state, router]);
 
   function choosePath(next: StartPath) {
     setPath(next);
@@ -63,6 +67,7 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
     window.history.replaceState(null, "", `?path=${query}`);
   }
 
+  if (state.done?.payUrl) return <Skeleton label="Opening the payment page" rows={2} />;
   if (state.done) return <Confirmation ref={top} done={state.done} />;
 
   const isCall = path === START_PATHS.call;
@@ -304,28 +309,6 @@ function CallTimes({
         Your parent is welcome to join. We&apos;ll email them the invite too.
       </p>
     </Section>
-  );
-}
-
-function PackageSummaryCard({ pkg }: { pkg: PackageSummary | null }) {
-  const included = [
-    "A Kenyan mentor who studied at your dream university",
-    "Weekly sessions on Google Meet, with notes",
-    "A short task list each week",
-    "A weekly progress report for your parent",
-  ];
-  return (
-    <Card tone="tint" eyebrow="What you'll pay" title={pkg ? `${formatKes(pkg.priceKes)} for ${pkg.weeks} weeks` : "Your mentorship package"}>
-      <ul className="m-0 flex list-none flex-col gap-2 p-0 pt-1">
-        {included.map((i) => (
-          <li key={i} className="flex items-start gap-2 text-ink">
-            <Icon name="check" size={20} color="var(--color-forest)" style={{ marginTop: 3 }} />
-            {i}
-          </li>
-        ))}
-      </ul>
-      <p className="m-0 pt-3">Pay by M-Pesa or card (Visa or Mastercard). The M-Pesa prompt can go to your parent&apos;s phone.</p>
-    </Card>
   );
 }
 

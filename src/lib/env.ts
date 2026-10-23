@@ -50,6 +50,12 @@ export function googleEnv() {
   return parsed.success ? parsed.data : null;
 }
 
+/** Paystack (M-Pesa and cards), or null until the secret key is set. Test keys start sk_test_. */
+export function paystackEnv() {
+  const key = process.env.PAYSTACK_SECRET_KEY;
+  return key ? { PAYSTACK_SECRET_KEY: key, live: key.startsWith("sk_live_") } : null;
+}
+
 /** Server-only values, including secrets. */
 export function serverEnv() {
   const parsed = serverSchema.safeParse({ ...process.env, NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || undefined });

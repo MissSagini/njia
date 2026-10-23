@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { after } from "next/server";
 import { z } from "zod";
 import { adminDb, schema } from "@/db";
-import { serverEnv } from "@/lib/env";
+import { paystackEnv, serverEnv } from "@/lib/env";
+import { payPath } from "@/lib/payments/link";
 import { goalsSchema, START_PATHS, type Goals, type GoalsField, type StartPath } from "@/lib/goals";
 import { calendarConnected, createMeetEvent } from "@/lib/google/calendar";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,7 +20,7 @@ export type GoalsState = {
   emailTaken?: boolean;
   /** A call time someone else booked while this form was open. */
   takenSlotId?: string;
-  done?: { path: StartPath; email: string; callStartsAt?: string; emailSent: boolean; inviteSent?: boolean };
+  done?: { path: StartPath; email: string; callStartsAt?: string; emailSent: boolean; inviteSent?: boolean; payUrl?: string };
 };
 
 const SOMETHING_WRONG = "We couldn't save your goals just now. Please try again in a few minutes.";
@@ -104,8 +105,9 @@ export async function submitGoals(_prev: GoalsState, formData: FormData): Promis
   const profileId = created.user.id;
 
   let call: { consultationId: string; startsAt: Date; endsAt: Date } | undefined;
+  let enrolmentId: string;
   try {
-    call = await adminDb().transaction(async (tx) => {
+    ({ call, enrolmentId } = await adminDb().transaction(async (tx) => {
       const now = new Date();
       const [student] = await tx
         .insert(schema.students)
@@ -146,8 +148,8 @@ export async function submitGoals(_prev: GoalsState, formData: FormData): Promis
       }
 
       await tx.insert(schema.activityLog).values(events);
-      return booked;
-    });
+      return { call: booked, enrolmentId: enrolment.id };
+    }));
   } catch (error) {
     // Nothing was saved, so remove the login too and let them try again
     await supabase.auth.admin.deleteUser(profileId).catch(() => {});
@@ -178,7 +180,9 @@ export async function submitGoals(_prev: GoalsState, formData: FormData): Promis
     after(() => inviteToCall(booked, goals));
   }
 
-  return { done: { path, email: goals.email, callStartsAt: call?.startsAt.toISOString(), emailSent, inviteSent } };
+  // Apply now: straight on to payment, when payments are switched on
+  const payUrl = path === START_PATHS.apply && paystackEnv() ? payPath(enrolmentId) : undefined;
+  return { done: { path, email: goals.email, callStartsAt: call?.startsAt.toISOString(), emailSent, inviteSent, payUrl } };
 }
 
 /** Creates the Meet link and emails the calendar invite to the student and parent. */

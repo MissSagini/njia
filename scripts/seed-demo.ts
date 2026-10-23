@@ -30,6 +30,9 @@ const sql = postgres(process.env.DATABASE_URL, { prepare: false });
 
 async function remove() {
   const rows = await sql<{ id: string }[]>`select id from profiles where email in (${MENTOR_EMAIL}, ${STUDENT_EMAIL}, ${ADMIN_EMAIL})`;
+  // Payments are kept when a student is deleted (money records), so demo ones are cleared by hand
+  await sql`delete from payments where charge_id in (select c.id from charges c join enrolments e on e.id = c.enrolment_id
+    join students s on s.id = e.student_id where s.email = ${STUDENT_EMAIL})`;
   // Sessions point at the mentor and their free times without cascading, so clear them first
   await sql`delete from sessions where mentor_id in (select id from mentors where email = ${MENTOR_EMAIL})`;
   await sql`delete from mentor_availability where mentor_id in (select id from mentors where email = ${MENTOR_EMAIL})`;

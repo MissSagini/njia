@@ -5,6 +5,7 @@ import type { Viewer } from "@/lib/auth/dal";
 
 export type MyMentorData = {
   firstName: string;
+  enrolmentId: string | null;
   startPath: "free_call" | "apply_now";
   mentor: {
     fullName: string;
@@ -70,6 +71,7 @@ export async function myMentor(viewer: Viewer): Promise<MyMentorData | null> {
 
     return {
       firstName: student.fullName.split(" ")[0],
+      enrolmentId: enrolment?.id ?? null,
       startPath: student.startPath,
       mentor: mentor
         ? {

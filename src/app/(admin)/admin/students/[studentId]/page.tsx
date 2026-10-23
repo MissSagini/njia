@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminPage, Detail, LoadError, Panel, StudentStatus } from "@/components/admin/AdminPage";
 import { CallEditor } from "@/components/admin/CallEditor";
+import { CopyLink } from "@/components/admin/CopyLink";
 import { PairForm } from "@/components/admin/PairForm";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,7 +10,9 @@ import { Icon } from "@/components/ui/Icon";
 import { studentDetail } from "@/lib/admin/data";
 import { requireViewer } from "@/lib/auth/dal";
 import { formatKenyanPhone } from "@/lib/goals";
+import { serverEnv } from "@/lib/env";
 import { formatKes } from "@/lib/money";
+import { payPath } from "@/lib/payments/link";
 import { formatLongDayEat, formatTimeEat } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Student" };
@@ -68,6 +71,11 @@ async function Student({ params }: Pick<PageProps<"/admin/students/[studentId]">
               <Detail label="Still to pay">{enrolment.balanceKes ? formatKes(enrolment.balanceKes) : "Paid in full"}</Detail>
               <Detail label="Start path">{s.startPath === "free_call" ? "Free call first" : "Applied now"}</Detail>
               <Detail label="Paired">{enrolment.pairedAt ? formatLongDayEat(enrolment.pairedAt) : "Not yet"}</Detail>
+              {enrolment.balanceKes > 0 ? (
+                <div className="sm:col-span-2">
+                  <CopyLink url={`${serverEnv().NEXT_PUBLIC_SITE_URL}${payPath(enrolment.id)}`} label="Copy payment link" />
+                </div>
+              ) : null}
             </dl>
           ) : (
             <p className="m-0 text-body text-ink-muted">No enrolment.</p>

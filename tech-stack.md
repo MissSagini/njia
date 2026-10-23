@@ -14,7 +14,7 @@
 | Database | **PostgreSQL on Supabase** (EU region, Pro plan), schema and migrations in code with **Drizzle** |
 | Authentication | **Supabase Auth**: email and password for everyone |
 
-One Next.js codebase serves both the marketing website and the logged-in platform. M-Pesa payments go directly through Safaricom Daraja, and card payments go through Paystack. Booking is built into the app, Google Calendar creates the Meet links, and Resend sends every email.
+One Next.js codebase serves both the marketing website and the logged-in platform. M-Pesa and card payments both go through Paystack. Booking is built into the app, Google Calendar creates the Meet links, and Resend sends every email.
 
 The stack is designed for three needs beyond the v2 spec: **instalments and deposits**, **week-by-week progress that triggers the next step**, and **strong protection for minors' data**.
 
@@ -36,14 +36,14 @@ The stack is designed for three needs beyond the v2 spec: **instalments and depo
 | Workflows | **Inngest** | Event-driven steps with retries and a log of every run (see section 4). |
 | Auth | **Supabase Auth** (email and password) | Everyone logs in with email and password (at least 10 characters). Email links are only used to choose a first password or reset a forgotten one. |
 | Access control | **Server checks + Supabase Row Level Security** | Two locks: server code checks every request, and the database's row-level rules apply even if the server code has a bug. Students see only their own data, mentors only their paired students, and admins everything. |
-| M-Pesa | **Safaricom Daraja API (STK Push), direct** | Sends the payment prompt to the student's or **parent's** phone. The callback's receipt number fills `M-Pesa reference`. Merchant fees are capped, unlike an aggregator's percentage fee. |
+| M-Pesa | **Paystack** (Charge API, mobile money) | Sends the M-Pesa prompt to the student's or **parent's** phone. Chosen over Daraja direct on 2026-10-24: one integration and one account for M-Pesa and cards, at the cost of Paystack's percentage fee. |
 | Cards | **Paystack** (hosted checkout) | Visa and Mastercard in KES with 3-D Secure. Card details never touch Njia's servers. |
 | Booking | **Built in-app** on `Mentor availability` | Students book the free call and their next session from available times. A database transaction plus a unique constraint prevents double-booking. |
 | Meet links & invites | **Google Calendar API** (Google Workspace) | Creates each event and its Google Meet link (stored on `Sessions`). Invites the parent to the free call. |
 | Email | **Resend + React Email** | Weekly parent report, booking and payment confirmations, reminders, and login emails (as Supabase's SMTP provider). |
 | Mentor contact | `wa.me` and `mailto:` links | WhatsApp or email from the My mentor screen. No chat API needed. |
 | Dates | **date-fns-tz** | Store times in UTC. Show students East Africa Time and mentors their own local time (UK or Europe). |
-| Phone numbers | **libphonenumber-js** | Converts numbers like `07xx…` into the `2547…` format Daraja needs. |
+| Phone numbers | `normaliseKenyanPhone` in `src/lib/goals.ts` | Converts numbers like `07xx…` into `+2547…`. |
 | Admin | `/admin` pages in the same app | Consultation calls, pairing queue, mentor approval, payments and balances. |
 | Hosting | **Vercel** | Deploys and a preview URL for every change. Secrets kept in Vercel environment variables. |
 | Errors | **Sentry** | Error tracking for the app, webhooks and workflows. Personal data scrubbed from error reports. |
@@ -95,7 +95,7 @@ Students are often under 18, so this is a core requirement.
 - **Least privilege.** The database master key is only used on the server, never sent to the browser.
 - **Strong passwords** (at least 10 characters). 2FA was considered and left out by decision; it can be added later for mentors and admins.
 - **Access log** recording who viewed or changed each student's record.
-- **No card data stored.** Paystack's hosted checkout handles cards. Every payment notification is verified as genuinely coming from Safaricom or Paystack.
+- **No card data stored.** Paystack's hosted checkout handles cards. Every payment notification is verified by Paystack's signature and re-checked with Paystack's API.
 - **Encryption.** Data is encrypted at rest by default. Add field-level encryption for the most sensitive fields (for example parent phone numbers) if needed.
 - **Backups.** Daily backups and point-in-time restore on Supabase Pro.
 - **No personal data in logs, error reports or analytics.**
@@ -106,7 +106,7 @@ Students are often under 18, so this is a core requirement.
 ## 6. Before building
 
 1. **M-Pesa limits.** KSh 250,000 is at or near M-Pesa's per-transaction limit, and the payer needs that balance in their wallet. Confirm current per-transaction, daily and wallet limits with Safaricom. The charges-and-payments design allows a charge to be paid in parts.
-2. **Daraja go-live.** Needs a registered business, a Paybill or Till number, and Safaricom production approval. Start this alongside development.
+2. **Paystack go-live.** Needs a registered business and Paystack's account activation (business documents) before live keys work. Start this alongside development.
 3. **Card limits.** Many Kenyan cards have limits below KSh 250,000. Show a clear error and offer M-Pesa as the alternative.
 4. **Apply-now checkout.** The student and enrolment records are created when Goals is submitted. Payment attaches to the charge, and the login link is sent once payment succeeds.
 5. **Data protection paperwork.** Privacy policy, consent wording, retention rule and provider agreements, ideally reviewed by a local advisor before launch.
@@ -131,7 +131,6 @@ Students are often under 18, so this is a core requirement.
 | Supabase Pro | About $25 per month |
 | Google Workspace | About $7 per user per month |
 | Vercel, Resend, Inngest, Sentry, PostHog | Free tiers cover launch |
-| M-Pesa (Daraja) | Merchant fee per transaction, capped (confirm current tariff) |
-| Paystack (cards) | Percentage per transaction (confirm current Kenya rate) |
+| Paystack (M-Pesa and cards) | Percentage per transaction (confirm current Kenya rates for each) |
 
 Confirm all fees and limits with the providers before launch.

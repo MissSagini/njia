@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { PaymentPanel } from "@/components/payments/PaymentPanel";
 import { Avatar } from "@/components/ui/Avatar";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -9,7 +10,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { initialsFor, requireViewer } from "@/lib/auth/dal";
+import { paystackEnv } from "@/lib/env";
 import { formatKes } from "@/lib/money";
+import { loadCheckout } from "@/lib/payments/ledger";
+import { payToken } from "@/lib/payments/link";
 import { myMentor, type MyMentorData } from "@/lib/students/my-mentor";
 import { formatLongDayEat, formatTimeEat } from "@/lib/time";
 
@@ -46,9 +50,9 @@ async function Loaded() {
   return (
     <div className="flex flex-col gap-6">
       {data.upcomingCall ? <FreeCall call={data.upcomingCall} /> : null}
-      {data.mentor ? <Mentor mentor={data.mentor} studentFirstName={data.firstName} /> : <Finding data={data} />}
+      {data.balanceKes > 0 && data.enrolmentId ? <PaymentDue enrolmentId={data.enrolmentId} balanceKes={data.balanceKes} /> : null}
+      {data.mentor ? <Mentor mentor={data.mentor} studentFirstName={data.firstName} owes={data.balanceKes > 0} /> : <Finding data={data} />}
       {data.mentor ? <NextSession session={data.nextSession} /> : null}
-      {data.balanceKes > 0 ? <PaymentDue balanceKes={data.balanceKes} /> : null}
     </div>
   );
 }
@@ -85,7 +89,7 @@ function Finding({ data }: { data: MyMentorData }) {
   );
 }
 
-function Mentor({ mentor, studentFirstName }: { mentor: NonNullable<MyMentorData["mentor"]>; studentFirstName: string }) {
+function Mentor({ mentor, studentFirstName, owes }: { mentor: NonNullable<MyMentorData["mentor"]>; studentFirstName: string; owes: boolean }) {
   const first = mentor.fullName.split(" ")[0];
   const greeting = `Hi ${first}, it's ${studentFirstName} from Njia.`;
   const whatsapp = mentor.whatsapp
@@ -112,7 +116,8 @@ function Mentor({ mentor, studentFirstName }: { mentor: NonNullable<MyMentorData
         {mentor.bio ? <p className="m-0 text-body text-pretty text-ink">{mentor.bio}</p> : null}
         <div className="flex flex-col gap-3 sm:flex-row">
           {whatsapp ? (
-            <Button variant="primary" href={whatsapp} iconLeft="message-circle" className="w-full sm:w-auto">
+            // Sunset goes to paying while money is owed: one per screen
+            <Button variant={owes ? "secondary" : "primary"} href={whatsapp} iconLeft="message-circle" className="w-full sm:w-auto">
               Message on WhatsApp
             </Button>
           ) : null}
@@ -142,11 +147,22 @@ function NextSession({ session }: { session: MyMentorData["nextSession"] }) {
   );
 }
 
-function PaymentDue({ balanceKes }: { balanceKes: number }) {
+async function PaymentDue({ enrolmentId, balanceKes }: { enrolmentId: string; balanceKes: number }) {
+  // The student's own enrolment, checked by the session above
+  const checkout = paystackEnv() ? await loadCheckout(enrolmentId) : null;
+  if (!checkout?.charge) {
+    return (
+      <Card eyebrow="Payment" title={`${formatKes(balanceKes)} to pay`}>
+        Pay by M-Pesa or card (Visa or Mastercard), and the M-Pesa prompt can go to your parent&apos;s phone. We&apos;ll email
+        you how to pay.
+      </Card>
+    );
+  }
   return (
-    <Card eyebrow="Payment" title={`${formatKes(balanceKes)} to pay`}>
-      Pay by M-Pesa or card (Visa or Mastercard), and the M-Pesa prompt can go to your parent&apos;s phone. We&apos;ll email
-      you how to pay.
-    </Card>
+    <PaymentPanel
+      token={payToken(enrolmentId)}
+      amountKes={checkout.charge.remainingKes}
+      afterPaid="We'll pair you with a mentor within 2 days, if we haven't already, and email you when it's done."
+    />
   );
 }
