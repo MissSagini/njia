@@ -54,7 +54,8 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
  */
 export async function requireViewer(roles: readonly Role[]): Promise<Viewer> {
   const viewer = await getViewer();
-  if (!viewer) redirect("/log-in");
+  // Through sign-out, so a session for a deleted account is cleared rather than looping with the proxy
+  if (!viewer) redirect("/auth/sign-out");
   if (!roles.includes(viewer.role)) redirect(homeFor(viewer.role));
   return viewer;
 }

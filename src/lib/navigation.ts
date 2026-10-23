@@ -1,6 +1,7 @@
 import type { IconName } from "@/components/ui/Icon";
 
-export type NavItem = { label: string; href: string; icon?: IconName };
+/** exact: active only on that path, not pages beneath it (for an area's overview). */
+export type NavItem = { label: string; href: string; icon?: IconName; exact?: boolean };
 
 /** Website header links (spec v2: How it works, Mentors, For parents). */
 export const siteLinks: NavItem[] = [
@@ -51,11 +52,17 @@ export const mentorAppLinks: NavItem[] = [
   { label: "Free times", href: "/free-times", icon: "calendar" },
 ];
 
-export const adminAppLinks: NavItem[] = [{ label: "Overview", href: "/admin", icon: "list-checks" }];
+export const adminAppLinks: NavItem[] = [
+  { label: "Overview", href: "/admin", icon: "list-checks", exact: true },
+  { label: "Students", href: "/admin/students", icon: "graduation-cap" },
+  { label: "Calls", href: "/admin/calls", icon: "calendar" },
+  { label: "Mentors", href: "/admin/mentors", icon: "users" },
+  { label: "Payments", href: "/admin/payments", icon: "credit-card" },
+];
 
 /** Active when on the link's path or a page beneath it. Query strings are ignored. */
-export function isActive(pathname: string, href: string) {
+export function isActive(pathname: string, href: string, exact = false) {
   const path = href.split("?")[0];
-  if (path === "/") return pathname === "/";
+  if (path === "/" || exact) return pathname === path;
   return pathname === path || pathname.startsWith(path + "/");
 }

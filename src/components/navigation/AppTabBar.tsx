@@ -17,7 +17,7 @@ export function AppTabBar({ items }: { items: NavItem[] }) {
       className="fixed inset-x-0 bottom-0 z-30 flex gap-1 border-t border-line bg-white px-2 pt-1.5 pb-[calc(10px+env(safe-area-inset-bottom))] lg:hidden"
     >
       {items.map((item) => {
-        const active = isActive(pathname, item.href);
+        const active = isActive(pathname, item.href, item.exact);
         return (
           <Link
             key={item.href}

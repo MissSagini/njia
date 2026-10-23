@@ -7,6 +7,7 @@ import { z } from "zod";
 import { adminDb, asUser, schema } from "@/db";
 import { logAccess, requireViewer, type Viewer } from "@/lib/auth/dal";
 import { calendarConnected, createMeetEvent } from "@/lib/google/calendar";
+import { meetLinkSchema } from "@/lib/links";
 import { isTimeZone, zonedToUtc } from "@/lib/time";
 import { MIN_NOTICE_HOURS } from "./data";
 
@@ -183,12 +184,6 @@ export type NotesState = {
   values?: { notes: string; meetLink: string };
   saved?: number;
 };
-
-const meetLinkSchema = z
-  .string()
-  .trim()
-  .transform((s) => s || null)
-  .refine((s) => s === null || /^https:\/\/(meet\.google\.com|([a-z0-9-]+\.)?zoom\.us)\//i.test(s), "Paste a Google Meet or Zoom link, starting with https://.");
 
 /** The mentor saves their notes and the call link for a session. */
 export async function saveSessionNotes(_prev: NotesState, formData: FormData): Promise<NotesState> {

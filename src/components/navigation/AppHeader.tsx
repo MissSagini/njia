@@ -37,7 +37,7 @@ export function AppHeader({ items, role, initials }: AppHeaderProps) {
           </Link>
           <nav aria-label="Main" className="hidden gap-2 lg:flex">
             {items.map((n) => {
-              const active = isActive(pathname, n.href);
+              const active = isActive(pathname, n.href, n.exact);
               return (
                 <Link
                   key={n.href}

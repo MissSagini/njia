@@ -1,5 +1,5 @@
 /**
- * Demo data for trying the signed-in screens locally: one mentor and one paired
+ * Demo data for trying the signed-in screens locally: an admin, one mentor and one paired
  * student, a past session with notes and tasks, and some free times. Uses
  * example.com emails, so nothing is ever sent. The shared password is saved to
  * .env.local as DEMO_PASSWORD (generated on first run, never printed).
@@ -15,6 +15,7 @@ import postgres from "postgres";
 
 const MENTOR_EMAIL = "demo-mentor@example.com";
 const STUDENT_EMAIL = "demo-student@example.com";
+const ADMIN_EMAIL = "demo-admin@example.com";
 
 const { values } = parseArgs({ options: { remove: { type: "boolean", default: false } } });
 
@@ -28,7 +29,7 @@ const supabase = createClient(url, secret, { auth: { autoRefreshToken: false, pe
 const sql = postgres(process.env.DATABASE_URL, { prepare: false });
 
 async function remove() {
-  const rows = await sql<{ id: string }[]>`select id from profiles where email in (${MENTOR_EMAIL}, ${STUDENT_EMAIL})`;
+  const rows = await sql<{ id: string }[]>`select id from profiles where email in (${MENTOR_EMAIL}, ${STUDENT_EMAIL}, ${ADMIN_EMAIL})`;
   // Sessions point at the mentor and their free times without cascading, so clear them first
   await sql`delete from sessions where mentor_id in (select id from mentors where email = ${MENTOR_EMAIL})`;
   await sql`delete from mentor_availability where mentor_id in (select id from mentors where email = ${MENTOR_EMAIL})`;
@@ -65,6 +66,7 @@ try {
 
     const mentorProfile = await createLogin(MENTOR_EMAIL, "mentor", "Wanjiru Kamau", password);
     const studentProfile = await createLogin(STUDENT_EMAIL, "student", "Amani Otieno", password);
+    await createLogin(ADMIN_EMAIL, "admin", "Demo Admin", password);
 
     const [mentor] = await sql`
       insert into mentors (profile_id, full_name, email, university, course, year_or_status, current_city, home_town, bio, whatsapp, time_zone, approved)
@@ -110,7 +112,7 @@ try {
       }
     await sql`insert into mentor_availability ${sql(times)} on conflict do nothing`;
 
-    console.log(`Created the demo mentor (${MENTOR_EMAIL}) and student (${STUDENT_EMAIL}).`);
+    console.log(`Created the demo admin (${ADMIN_EMAIL}), mentor (${MENTOR_EMAIL}) and student (${STUDENT_EMAIL}).`);
     console.log("Log in at /log-in with either email and the DEMO_PASSWORD in .env.local.");
   }
 } catch (error) {
