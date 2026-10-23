@@ -14,6 +14,7 @@ export const PROTECTED_AREAS: { prefix: string; roles: readonly Role[] }[] = [
   { prefix: "/sessions", roles: ["student"] },
   { prefix: "/my-goals", roles: ["student"] },
   { prefix: "/students", roles: ["mentor"] },
+  { prefix: "/free-times", roles: ["mentor"] },
   { prefix: "/admin", roles: ["admin"] },
 ];
 

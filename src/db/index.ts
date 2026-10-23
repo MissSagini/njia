@@ -32,11 +32,12 @@ export type JwtClaims = { sub: string; role?: string; [key: string]: unknown };
  */
 export async function asUser<T>(claims: JwtClaims, run: (tx: Tx) => Promise<T>): Promise<T> {
   return adminDb().transaction(async (tx) => {
+    // One round trip: the claims, then the role (set_config('role', …, true) is SET LOCAL ROLE)
     await tx.execute(sql`
       select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true),
-             set_config('request.jwt.claim.sub', ${claims.sub}, true)
+             set_config('request.jwt.claim.sub', ${claims.sub}, true),
+             set_config('role', 'authenticated', true)
     `);
-    await tx.execute(sql`set local role authenticated`);
     return run(tx);
   });
 }

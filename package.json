@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "user:create": "node --env-file=.env.local scripts/create-user.ts",
-    "google:connect": "node --env-file=.env.local scripts/google-connect.ts"
+    "google:connect": "node --env-file=.env.local scripts/google-connect.ts",
+    "demo:seed": "node --env-file=.env.local scripts/seed-demo.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

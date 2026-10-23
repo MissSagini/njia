@@ -48,6 +48,7 @@ export const studentAppLinks: NavItem[] = [
 
 export const mentorAppLinks: NavItem[] = [
   { label: "My students", href: "/students", icon: "users" },
+  { label: "Free times", href: "/free-times", icon: "calendar" },
 ];
 
 export const adminAppLinks: NavItem[] = [{ label: "Overview", href: "/admin", icon: "list-checks" }];
