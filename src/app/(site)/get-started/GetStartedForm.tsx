@@ -404,7 +404,9 @@ function Confirmation({ done, ref }: { done: NonNullable<GoalsState["done"]>; re
         done.callStartsAt
           ? `Your free call is on ${formatLongDayEat(done.callStartsAt)} at ${formatTimeEat(done.callStartsAt)} EAT.`
           : "Your free call is booked.",
-        "We'll email you and your parent the Google Meet link before the call.",
+        done.inviteSent
+          ? "You and your parent will get a calendar invite by email, with the Google Meet link."
+          : "We'll email you and your parent the Google Meet link before the call.",
         done.emailSent
           ? `We've sent a link to ${done.email} so you can choose a password and log in.`
           : `To log in, use “Forgot your password?” on the log in page with ${done.email}.`,

@@ -143,6 +143,8 @@ export const consultations = pgTable(
       .references(() => consultationSlots.id),
     status: consultationStatus("status").notNull().default("booked"),
     meetLink: text("meet_link"),
+    /** Google Calendar event, for moving or cancelling the call later */
+    calendarEventId: text("calendar_event_id"),
     ...timestamps,
   },
   // A slot can hold only one live booking: the "time was just booked" error comes from this index
@@ -272,6 +274,7 @@ export const sessions = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     status: sessionStatus("status").notNull().default("scheduled"),
     meetLink: text("meet_link"),
+    calendarEventId: text("calendar_event_id"),
     mentorNotes: text("mentor_notes"),
     ...timestamps,
   },

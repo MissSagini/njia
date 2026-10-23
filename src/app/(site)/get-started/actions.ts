@@ -1,10 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { z } from "zod";
 import { adminDb, schema } from "@/db";
 import { serverEnv } from "@/lib/env";
-import { goalsSchema, START_PATHS, type GoalsField, type StartPath } from "@/lib/goals";
+import { goalsSchema, START_PATHS, type Goals, type GoalsField, type StartPath } from "@/lib/goals";
+import { calendarConnected, createMeetEvent } from "@/lib/google/calendar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { activePackage, isSlotOpen } from "./data";
 
@@ -17,7 +19,7 @@ export type GoalsState = {
   emailTaken?: boolean;
   /** A call time someone else booked while this form was open. */
   takenSlotId?: string;
-  done?: { path: StartPath; email: string; callStartsAt?: string; emailSent: boolean };
+  done?: { path: StartPath; email: string; callStartsAt?: string; emailSent: boolean; inviteSent?: boolean };
 };
 
 const SOMETHING_WRONG = "We couldn't save your goals just now. Please try again in a few minutes.";
@@ -101,9 +103,9 @@ export async function submitGoals(_prev: GoalsState, formData: FormData): Promis
   }
   const profileId = created.user.id;
 
-  let callStartsAt: string | undefined;
+  let call: { consultationId: string; startsAt: Date; endsAt: Date } | undefined;
   try {
-    callStartsAt = await adminDb().transaction(async (tx) => {
+    call = await adminDb().transaction(async (tx) => {
       const now = new Date();
       const [student] = await tx
         .insert(schema.students)
@@ -126,24 +128,25 @@ export async function submitGoals(_prev: GoalsState, formData: FormData): Promis
         { studentId: student.id, actorProfileId: profileId, eventType: "goals_submitted", details: { startPath: path } },
       ];
 
-      let startsAt: string | undefined;
+      let booked: typeof call;
       if (path === START_PATHS.call) {
         const [consultation] = await tx
           .insert(schema.consultations)
           .values({ studentId: student.id, slotId: raw.slotId })
           .returning({ id: schema.consultations.id });
         const slot = await tx.query.consultationSlots.findFirst({ where: eq(schema.consultationSlots.id, raw.slotId) });
-        startsAt = slot?.startsAt.toISOString();
+        if (!slot) throw new Error("slot vanished");
+        booked = { consultationId: consultation.id, startsAt: slot.startsAt, endsAt: slot.endsAt };
         events.push({
           studentId: student.id,
           actorProfileId: profileId,
           eventType: "consultation_booked",
-          details: { consultationId: consultation.id, startsAt },
+          details: { consultationId: consultation.id, startsAt: slot.startsAt.toISOString() },
         });
       }
 
       await tx.insert(schema.activityLog).values(events);
-      return startsAt;
+      return booked;
     });
   } catch (error) {
     // Nothing was saved, so remove the login too and let them try again
@@ -168,5 +171,34 @@ export async function submitGoals(_prev: GoalsState, formData: FormData): Promis
     if (error) console.error("get-started: password email failed", error.code ?? error.status);
   }
 
-  return { done: { path, email: goals.email, callStartsAt, emailSent } };
+  const inviteSent = !!call && calendarConnected();
+  if (call && inviteSent) {
+    const booked = call;
+    // After the response, so a slow calendar never holds up "You're booked!"
+    after(() => inviteToCall(booked, goals));
+  }
+
+  return { done: { path, email: goals.email, callStartsAt: call?.startsAt.toISOString(), emailSent, inviteSent } };
+}
+
+/** Creates the Meet link and emails the calendar invite to the student and parent. */
+async function inviteToCall(call: { consultationId: string; startsAt: Date; endsAt: Date }, goals: Goals) {
+  try {
+    const { eventId, meetLink } = await createMeetEvent({
+      requestId: call.consultationId,
+      summary: `Njia free call with ${goals.fullName}`,
+      description:
+        "Your free 30-minute call with the Njia team. We'll talk about your goals, your universities and how a mentor can help. Parents are welcome to join.",
+      startsAt: call.startsAt,
+      endsAt: call.endsAt,
+      attendees: [goals.email, goals.parentEmail],
+    });
+    await adminDb()
+      .update(schema.consultations)
+      .set({ meetLink, calendarEventId: eventId })
+      .where(eq(schema.consultations.id, call.consultationId));
+  } catch (error) {
+    // The booking stands; the team can add the link by hand
+    console.error("get-started: calendar invite failed", (error as Error).message);
+  }
 }

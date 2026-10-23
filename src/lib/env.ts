@@ -37,6 +37,19 @@ export function tryPublicEnv() {
   return parsed.success ? parsed.data : null;
 }
 
+const googleSchema = z.object({
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  GOOGLE_REFRESH_TOKEN: z.string().min(1),
+  GOOGLE_CALENDAR_ID: z.string().min(1).default("primary"),
+});
+
+/** Google Calendar access, or null until it's connected (npm run google:connect). */
+export function googleEnv() {
+  const parsed = googleSchema.safeParse({ ...process.env, GOOGLE_CALENDAR_ID: process.env.GOOGLE_CALENDAR_ID || undefined });
+  return parsed.success ? parsed.data : null;
+}
+
 /** Server-only values, including secrets. */
 export function serverEnv() {
   const parsed = serverSchema.safeParse({ ...process.env, NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || undefined });
