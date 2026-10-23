@@ -67,27 +67,40 @@ const editableFields = {
 
 export const PARENT_EMAIL_DIFFERENT = "Use your parent's own email, so they get the weekly report.";
 
+/** Who the student is and how to reach them and their parent. */
+const contactFields = {
+  fullName: text(120, "Enter your full name."),
+  email: email("Enter your email address.", "cynthia@gmail.com"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Enter your phone number.")
+    .transform((p, ctx) => {
+      const e164 = normaliseKenyanPhone(p);
+      if (!e164) {
+        ctx.addIssue({ code: "custom", message: "Enter a Kenyan mobile number, like 0712 345 678." });
+        return z.NEVER;
+      }
+      return e164;
+    }),
+  school: z.string().trim().max(120, "That's a bit long. Shorten it, please.").optional().transform((s) => s || null),
+  parentName: editableFields.parentName,
+  parentEmail: editableFields.parentEmail,
+};
+
 export const goalsSchema = z
   .object({
-    fullName: text(120, "Enter your full name."),
-    email: email("Enter your email address.", "cynthia@gmail.com"),
-    phone: z
-      .string()
-      .trim()
-      .min(1, "Enter your phone number.")
-      .transform((p, ctx) => {
-        const e164 = normaliseKenyanPhone(p);
-        if (!e164) {
-          ctx.addIssue({ code: "custom", message: "Enter a Kenyan mobile number, like 0712 345 678." });
-          return z.NEVER;
-        }
-        return e164;
-      }),
-    school: z.string().trim().max(120, "That's a bit long. Shorten it, please.").optional().transform((s) => s || null),
+    ...contactFields,
     ...editableFields,
     helpNeeded: text(2000, "Tell us what you'd like help with."),
   })
   .refine((g) => g.parentEmail !== g.email, { path: ["parentEmail"], message: PARENT_EMAIL_DIFFERENT });
+
+/** A student's contact details, which only the Njia team edits (admin). */
+export const contactSchema = z
+  .object(contactFields)
+  .refine((g) => g.parentEmail !== g.email, { path: ["parentEmail"], message: PARENT_EMAIL_DIFFERENT });
+export type ContactField = keyof z.input<typeof contactSchema>;
 
 /** My goals. The caller checks the parent's email isn't the student's own (see PARENT_EMAIL_DIFFERENT). */
 export const editGoalsSchema = z.object(editableFields);

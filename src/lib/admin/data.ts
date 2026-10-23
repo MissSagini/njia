@@ -42,7 +42,28 @@ export type StudentRow = {
   mentorName: string | null;
   balanceKes: number;
   nextCallAt: string | null;
+  /** When the last payment cleared the balance, if it's paid in full. */
+  paidAt: string | null;
+  /** Paid in full, no mentor yet, and past the 2-day promise. */
+  overdue: boolean;
 };
+
+/** We promise to pair a paid student within 2 days. */
+export const PAIRING_DAYS = 2;
+
+/** When each fully paid enrolment's last succeeded payment came in. */
+async function fullyPaidAt(tx: Tx, enrolmentIds: string[]): Promise<Map<string, Date>> {
+  const result = new Map<string, Date>();
+  if (!enrolmentIds.length) return result;
+  const rows = await tx
+    .select({ id: charges.enrolmentId, at: sql<Date>`max(coalesce(${payments.paidAt}, ${payments.createdAt}))` })
+    .from(payments)
+    .innerJoin(charges, eq(charges.id, payments.chargeId))
+    .where(and(inArray(charges.enrolmentId, enrolmentIds), eq(payments.status, "succeeded")))
+    .groupBy(charges.enrolmentId);
+  for (const r of rows) result.set(r.id, new Date(r.at));
+  return result;
+}
 
 /** Every student, newest first, with pairing, balance and next free call. */
 export async function allStudents(viewer: Viewer): Promise<StudentRow[]> {
@@ -72,7 +93,10 @@ export async function allStudents(viewer: Viewer): Promise<StudentRow[]> {
       .leftJoin(mentors, eq(mentors.id, enrolments.mentorId))
       .orderBy(desc(students.createdAt));
 
-    const owed = await balances(tx, rows.flatMap((r) => (r.enrolmentId ? [r.enrolmentId] : [])));
+    const ids = rows.flatMap((r) => (r.enrolmentId ? [r.enrolmentId] : []));
+    const owed = await balances(tx, ids);
+    const paidAt = await fullyPaidAt(tx, ids.filter((id) => owed.get(id) === 0));
+    const deadline = Date.now() - PAIRING_DAYS * 86_400_000;
     const calls = rows.length
       ? await tx
           .select({ studentId: consultations.studentId, startsAt: slots.startsAt })
@@ -86,6 +110,8 @@ export async function allStudents(viewer: Viewer): Promise<StudentRow[]> {
       ...r,
       createdAt: r.createdAt.toISOString(),
       balanceKes: r.enrolmentId ? (owed.get(r.enrolmentId) ?? 0) : 0,
+      paidAt: (r.enrolmentId && paidAt.get(r.enrolmentId)?.toISOString()) || null,
+      overdue: !!r.enrolmentId && !r.mentorName && (paidAt.get(r.enrolmentId)?.getTime() ?? Infinity) < deadline,
       nextCallAt: calls.find((c) => c.studentId === r.id)?.startsAt.toISOString() ?? null,
     }));
   });
@@ -93,9 +119,10 @@ export async function allStudents(viewer: Viewer): Promise<StudentRow[]> {
 
 export type StudentDetail = {
   student: typeof students.$inferSelect;
-  enrolment: (typeof enrolments.$inferSelect & { balanceKes: number }) | null;
+  enrolment: (typeof enrolments.$inferSelect & { balanceKes: number; overdue: boolean }) | null;
   mentor: { id: string; fullName: string } | null;
   calls: { id: string; startsAt: string; status: string; meetLink: string | null }[];
+  payments: { id: string; amountKes: number; method: string; status: string; at: string; note: string | null; recorded: boolean }[];
   sessionsHeld: number;
   approvedMentors: { id: string; fullName: string; university: string; course: string; studentCount: number }[];
 };
@@ -110,6 +137,25 @@ export async function studentDetail(viewer: Viewer, studentId: string): Promise<
       orderBy: desc(enrolments.createdAt),
     });
     const owed = enrolment ? await balances(tx, [enrolment.id]) : new Map<string, number>();
+    const paidAt = enrolment && owed.get(enrolment.id) === 0 ? (await fullyPaidAt(tx, [enrolment.id])).get(enrolment.id) : undefined;
+    const overdue = !!enrolment && !enrolment.mentorId && !!paidAt && paidAt.getTime() < Date.now() - PAIRING_DAYS * 86_400_000;
+    const paymentRows = enrolment
+      ? await tx
+          .select({
+            id: payments.id,
+            amountKes: payments.amountKes,
+            method: payments.method,
+            status: payments.status,
+            paidAt: payments.paidAt,
+            createdAt: payments.createdAt,
+            note: payments.note,
+            recordedBy: payments.recordedBy,
+          })
+          .from(payments)
+          .innerJoin(charges, eq(charges.id, payments.chargeId))
+          .where(eq(charges.enrolmentId, enrolment.id))
+          .orderBy(desc(payments.createdAt))
+      : [];
     const mentor = enrolment?.mentorId
       ? await tx.query.mentors.findFirst({ where: eq(mentors.id, enrolment.mentorId), columns: { id: true, fullName: true } })
       : undefined;
@@ -139,9 +185,18 @@ export async function studentDetail(viewer: Viewer, studentId: string): Promise<
 
     return {
       student,
-      enrolment: enrolment ? { ...enrolment, balanceKes: owed.get(enrolment.id) ?? 0 } : null,
+      enrolment: enrolment ? { ...enrolment, balanceKes: owed.get(enrolment.id) ?? 0, overdue } : null,
       mentor: mentor ?? null,
       calls: calls.map((c) => ({ ...c, startsAt: c.startsAt.toISOString() })),
+      payments: paymentRows.map((p) => ({
+        id: p.id,
+        amountKes: p.amountKes,
+        method: p.method,
+        status: p.status,
+        at: (p.paidAt ?? p.createdAt).toISOString(),
+        note: p.note,
+        recorded: !!p.recordedBy,
+      })),
       sessionsHeld: held.n,
       approvedMentors: mentorRows.map((m) => ({ ...m, studentCount: loads.find((l) => l.mentorId === m.id)?.n ?? 0 })),
     };
@@ -217,7 +272,10 @@ export type PaymentRow = {
   studentId: string;
   studentName: string;
   amountKes: number;
-  method: "mpesa" | "card";
+  method: "mpesa" | "card" | "bank_transfer" | "cash";
+  /** Recorded by hand in admin, not through Paystack. */
+  recorded: boolean;
+  note: string | null;
   status: "pending" | "succeeded" | "failed";
   reference: string | null;
   at: string;
@@ -237,6 +295,8 @@ export async function paymentsLedger(viewer: Viewer) {
         reference: payments.mpesaReference,
         providerReference: payments.providerReference,
         paidAt: payments.paidAt,
+        recordedBy: payments.recordedBy,
+        note: payments.note,
         createdAt: payments.createdAt,
       })
       .from(payments)
@@ -262,7 +322,9 @@ export async function paymentsLedger(viewer: Viewer) {
           amountKes: r.amountKes,
           method: r.method,
           status: r.status,
-          reference: r.reference ?? r.providerReference,
+          reference: r.reference ?? (r.recordedBy ? null : r.providerReference),
+          recorded: !!r.recordedBy,
+          note: r.note,
           at: (r.paidAt ?? r.createdAt).toISOString(),
         }),
       ),

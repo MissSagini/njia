@@ -3,19 +3,22 @@ import Link from "next/link";
 import { AdminPage, Detail, LoadError, Panel, StudentStatus } from "@/components/admin/AdminPage";
 import { CallEditor } from "@/components/admin/CallEditor";
 import { CopyLink } from "@/components/admin/CopyLink";
+import { ContactDetails, RecordPaymentForm } from "@/components/admin/StudentForms";
 import { PairForm } from "@/components/admin/PairForm";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { studentDetail } from "@/lib/admin/data";
 import { requireViewer } from "@/lib/auth/dal";
-import { formatKenyanPhone } from "@/lib/goals";
 import { serverEnv } from "@/lib/env";
 import { formatKes } from "@/lib/money";
 import { payPath } from "@/lib/payments/link";
 import { formatLongDayEat, formatTimeEat } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Student" };
+
+const METHOD_LABELS: Record<string, string> = { mpesa: "M-Pesa", card: "Card", bank_transfer: "Bank transfer", cash: "Cash" };
+const STATUS_LABELS: Record<string, string> = { succeeded: "Paid", pending: "Waiting", failed: "Failed" };
 
 export default function AdminStudentPage({ params }: PageProps<"/admin/students/[studentId]">) {
   return (
@@ -52,7 +55,7 @@ async function Student({ params }: Pick<PageProps<"/admin/students/[studentId]">
       </Link>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="m-0 type-title">{s.fullName}</h1>
-        <StudentStatus mentorName={mentor?.fullName ?? null} balanceKes={enrolment?.balanceKes ?? 0} hasEnrolment={!!enrolment} />
+        <StudentStatus mentorName={mentor?.fullName ?? null} balanceKes={enrolment?.balanceKes ?? 0} hasEnrolment={!!enrolment} overdue={enrolment?.overdue} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -66,17 +69,39 @@ async function Student({ params }: Pick<PageProps<"/admin/students/[studentId]">
 
         <Panel title="Package" description={enrolment ? `${enrolment.packageName}, ${enrolment.weeks} weeks` : undefined}>
           {enrolment ? (
-            <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Detail label="Price">{formatKes(enrolment.priceKes)}</Detail>
-              <Detail label="Still to pay">{enrolment.balanceKes ? formatKes(enrolment.balanceKes) : "Paid in full"}</Detail>
-              <Detail label="Start path">{s.startPath === "free_call" ? "Free call first" : "Applied now"}</Detail>
-              <Detail label="Paired">{enrolment.pairedAt ? formatLongDayEat(enrolment.pairedAt) : "Not yet"}</Detail>
-              {enrolment.balanceKes > 0 ? (
-                <div className="sm:col-span-2">
-                  <CopyLink url={`${serverEnv().NEXT_PUBLIC_SITE_URL}${payPath(enrolment.id)}`} label="Copy payment link" />
+            <div className="flex flex-col gap-4">
+              <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Detail label="Price">{formatKes(enrolment.priceKes)}</Detail>
+                <Detail label="Still to pay">{enrolment.balanceKes ? formatKes(enrolment.balanceKes) : "Paid in full"}</Detail>
+                <Detail label="Start path">{s.startPath === "free_call" ? "Free call first" : "Applied now"}</Detail>
+                <Detail label="Paired">{enrolment.pairedAt ? formatLongDayEat(enrolment.pairedAt) : "Not yet"}</Detail>
+                {enrolment.balanceKes > 0 ? (
+                  <div className="flex flex-col gap-3 sm:col-span-2">
+                    <CopyLink url={`${serverEnv().NEXT_PUBLIC_SITE_URL}${payPath(enrolment.id)}`} label="Copy payment link" />
+                    <RecordPaymentForm studentId={s.id} balanceKes={enrolment.balanceKes} />
+                  </div>
+                ) : null}
+              </dl>
+              {detail.payments.length ? (
+                <div className="flex flex-col gap-1">
+                  <h3 className="m-0 text-[15px] leading-[22px] font-semibold">Payments</h3>
+                  <ul className="m-0 flex list-none flex-col p-0">
+                    {detail.payments.map((p) => (
+                      <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-2 first:border-t-0">
+                        <span className="text-body">
+                          {formatKes(p.amountKes)} · {METHOD_LABELS[p.method] ?? p.method}
+                          <span className="block text-small text-ink-muted">
+                            {formatLongDayEat(p.at)}
+                            {p.recorded ? ` · recorded by the team${p.note ? `: ${p.note}` : ""}` : ""}
+                          </span>
+                        </span>
+                        <Badge variant={p.status === "succeeded" ? "tag" : "neutral"}>{STATUS_LABELS[p.status] ?? p.status}</Badge>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
-            </dl>
+            </div>
           ) : (
             <p className="m-0 text-body text-ink-muted">No enrolment.</p>
           )}
@@ -104,18 +129,10 @@ async function Student({ params }: Pick<PageProps<"/admin/students/[studentId]">
       </Panel>
 
       <Panel title="Contact">
-        <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Detail label="Email">
-            <a href={`mailto:${s.email}`}>{s.email}</a>
-          </Detail>
-          <Detail label="Phone">
-            <a href={`https://wa.me/${s.phone.replace(/\D/g, "")}`}>{formatKenyanPhone(s.phone)}</a>
-          </Detail>
-          <Detail label="School">{s.school ?? "Not given"}</Detail>
-          <Detail label="Parent or guardian">
-            {s.parentName}, <a href={`mailto:${s.parentEmail}`}>{s.parentEmail}</a>
-          </Detail>
-        </dl>
+        <ContactDetails
+          studentId={s.id}
+          contact={{ fullName: s.fullName, email: s.email, phone: s.phone, school: s.school, parentName: s.parentName, parentEmail: s.parentEmail }}
+        />
       </Panel>
 
       <Panel title="Free calls" description="Times in East Africa Time.">

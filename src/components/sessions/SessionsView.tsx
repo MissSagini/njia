@@ -184,7 +184,7 @@ function SessionCard({
       ) : null}
 
       {upcoming && mode === "student" ? (
-        <p className="m-0 text-body text-ink-muted">Can&apos;t make it? Message your mentor from the My mentor page.</p>
+        <p className="m-0 text-body text-ink-muted">Can&apos;t make it? Message your mentor at least 2 hours before, from the My mentor page.</p>
       ) : null}
       {upcoming && mode === "mentor" ? (
         <div>

@@ -1,12 +1,14 @@
 "use server";
 
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { adminDb, schema } from "@/db";
 import { logAccess, requireViewer } from "@/lib/auth/dal";
 import { serverEnv } from "@/lib/env";
+import { contactSchema, PARENT_EMAIL_DIFFERENT, type ContactField } from "@/lib/goals";
 import { meetLinkSchema } from "@/lib/links";
+import { activateIfPaid } from "@/lib/payments/ledger";
 import { MENTOR_TIME_ZONES } from "./options";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EAT, isTimeZone, zonedToUtc } from "@/lib/time";
@@ -231,4 +233,185 @@ export async function setMentorApproved(mentorId: string, approved: boolean): Pr
   await adminDb().update(schema.mentors).set({ approved }).where(eq(schema.mentors.id, mentorId));
   refresh();
   return {};
+}
+
+// ---------------------------------------------------------------- editing people
+
+const EMAIL_IN_USE = "Someone else already has a Njia account with this email.";
+
+/** Moves a login to a new email, if it changed and nobody else has it. Returns an error message or null. */
+async function changeLoginEmail(profileId: string, oldEmail: string, newEmail: string): Promise<string | null> {
+  if (oldEmail === newEmail) return null;
+  const taken = await adminDb().query.profiles.findFirst({ where: eq(schema.profiles.email, newEmail) });
+  if (taken && taken.id !== profileId) return EMAIL_IN_USE;
+  // The database trigger copies the new email to their profile
+  const { error } = await createAdminClient().auth.admin.updateUserById(profileId, { email: newEmail, email_confirm: true });
+  if (error) {
+    if (error.code === "email_exists") return EMAIL_IN_USE;
+    console.error("admin: email change failed", error.code ?? error.status);
+    return SOMETHING_WRONG;
+  }
+  return null;
+}
+
+export type EditStudentState = { values?: Record<string, string>; fieldErrors?: Partial<Record<ContactField, string>>; error?: string; saved?: number };
+
+/** Corrects a student's contact details. A new email also becomes their login email. */
+export async function updateStudentDetails(_prev: EditStudentState, formData: FormData): Promise<EditStudentState> {
+  const viewer = await requireViewer(["admin"]);
+  const studentId = String(formData.get("studentId") ?? "");
+  const keys: ContactField[] = ["fullName", "email", "phone", "school", "parentName", "parentEmail"];
+  const values = Object.fromEntries(keys.map((k) => [k, String(formData.get(k) ?? "")]));
+  if (!z.uuid().safeParse(studentId).success) return { values, error: SOMETHING_WRONG };
+
+  const parsed = contactSchema.safeParse(values);
+  if (!parsed.success) {
+    const fieldErrors: EditStudentState["fieldErrors"] = {};
+    for (const issue of parsed.error.issues) fieldErrors[issue.path[0] as ContactField] ??= issue.message;
+    // The shared messages speak to the student; here the team is editing
+    if (fieldErrors.parentEmail === PARENT_EMAIL_DIFFERENT) fieldErrors.parentEmail = "Use a different email from the student's, so the parent gets the weekly report.";
+    return { values, fieldErrors };
+  }
+  const details = parsed.data;
+  const student = await adminDb().query.students.findFirst({ where: eq(schema.students.id, studentId) });
+  if (!student) return { values, error: SOMETHING_WRONG };
+
+  const emailError = await changeLoginEmail(student.profileId, student.email, details.email);
+  if (emailError) return { values, fieldErrors: emailError === EMAIL_IN_USE ? { email: emailError } : {}, error: emailError === EMAIL_IN_USE ? undefined : emailError };
+
+  const changed = keys.filter((k) => (details[k] ?? null) !== (student[k] ?? null));
+  await adminDb().transaction(async (tx) => {
+    await tx.update(schema.students).set(details).where(eq(schema.students.id, studentId));
+    if (details.fullName !== student.fullName) {
+      await tx.update(schema.profiles).set({ fullName: details.fullName }).where(eq(schema.profiles.id, student.profileId));
+    }
+    if (changed.length) {
+      await tx.insert(schema.activityLog).values({
+        studentId,
+        actorProfileId: viewer.profileId,
+        eventType: "details_updated",
+        details: { fields: changed },
+      });
+    }
+  });
+  await logAccess(viewer, studentId, "update", "student_details");
+  refresh();
+  return { saved: Date.now() };
+}
+
+export type EditMentorState = { values?: Record<string, string>; fieldErrors?: Partial<Record<MentorField, string>>; error?: string; saved?: number };
+
+/** Corrects a mentor's profile. A new email also becomes their login email. */
+export async function updateMentor(_prev: EditMentorState, formData: FormData): Promise<EditMentorState> {
+  await requireViewer(["admin"]);
+  const mentorId = String(formData.get("mentorId") ?? "");
+  const keys = Object.keys(mentorSchema.shape) as MentorField[];
+  const values = Object.fromEntries(keys.map((k) => [k, String(formData.get(k) ?? "")]));
+  if (!z.uuid().safeParse(mentorId).success) return { values, error: SOMETHING_WRONG };
+
+  const parsed = mentorSchema.safeParse(values);
+  if (!parsed.success) {
+    const fieldErrors: EditMentorState["fieldErrors"] = {};
+    for (const issue of parsed.error.issues) fieldErrors[issue.path[0] as MentorField] ??= issue.message;
+    return { values, fieldErrors };
+  }
+  const m = parsed.data;
+  const mentor = await adminDb().query.mentors.findFirst({ where: eq(schema.mentors.id, mentorId) });
+  if (!mentor) return { values, error: SOMETHING_WRONG };
+
+  const emailError = await changeLoginEmail(mentor.profileId, mentor.email, m.email);
+  if (emailError) return { values, fieldErrors: emailError === EMAIL_IN_USE ? { email: emailError } : {}, error: emailError === EMAIL_IN_USE ? undefined : emailError };
+
+  await adminDb().transaction(async (tx) => {
+    await tx.update(schema.mentors).set(m).where(eq(schema.mentors.id, mentorId));
+    if (m.fullName !== mentor.fullName) {
+      await tx.update(schema.profiles).set({ fullName: m.fullName }).where(eq(schema.profiles.id, mentor.profileId));
+    }
+  });
+  refresh();
+  return { saved: Date.now() };
+}
+
+// ---------------------------------------------------------------- recording a payment
+
+export type RecordPaymentState = {
+  values?: Record<string, string>;
+  fieldErrors?: { amount?: string; method?: string; paidOn?: string; note?: string };
+  error?: string;
+  saved?: number;
+};
+
+const RECORDED_METHODS = ["bank_transfer", "mpesa", "cash"] as const;
+
+/**
+ * Records money received outside Paystack (bank transfer, cash, or M-Pesa paid
+ * straight to Njia). It goes against the oldest charges first, like any payment.
+ */
+export async function recordPayment(_prev: RecordPaymentState, formData: FormData): Promise<RecordPaymentState> {
+  const viewer = await requireViewer(["admin"]);
+  const values = Object.fromEntries(["amount", "method", "paidOn", "note"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const studentId = String(formData.get("studentId") ?? "");
+  if (!z.uuid().safeParse(studentId).success) return { values, error: SOMETHING_WRONG };
+
+  const fieldErrors: RecordPaymentState["fieldErrors"] = {};
+  const amount = Number(values.amount.replace(/[,\s]/g, ""));
+  const method = RECORDED_METHODS.find((m) => m === values.method);
+  if (!Number.isInteger(amount) || amount <= 0) fieldErrors.amount = "Enter the amount in whole shillings, like 250000.";
+  if (!method) fieldErrors.method = "Choose how it was paid.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(values.paidOn) || new Date(`${values.paidOn}T00:00:00Z`) > new Date()) {
+    fieldErrors.paidOn = "Choose the day it was paid, today or earlier.";
+  }
+  if (values.note.trim().length < 3) fieldErrors.note = "Add the reference (bank or M-Pesa code) or who paid, so it can be traced.";
+  if (Object.keys(fieldErrors).length) return { values, fieldErrors };
+
+  const db = adminDb();
+  const enrolment = await db.query.enrolments.findFirst({
+    where: and(eq(schema.enrolments.studentId, studentId), ne(schema.enrolments.status, "cancelled")),
+    orderBy: desc(schema.enrolments.createdAt),
+  });
+  if (!enrolment) return { values, error: "This student has no enrolment to pay for." };
+
+  const charges = await db
+    .select({
+      id: schema.charges.id,
+      remaining: sql<number>`${schema.charges.amountKes} - coalesce((select sum(p.amount_kes) from payments p where p.charge_id = ${schema.charges.id} and p.status = 'succeeded'), 0)::int`,
+    })
+    .from(schema.charges)
+    .where(eq(schema.charges.enrolmentId, enrolment.id))
+    .orderBy(asc(schema.charges.dueOn), asc(schema.charges.createdAt));
+  const owed = charges.reduce((n, c) => n + Math.max(Number(c.remaining), 0), 0);
+  if (owed === 0) return { values, error: "This student has nothing left to pay." };
+  if (amount > owed) return { values, fieldErrors: { amount: `That's more than the KSh ${owed.toLocaleString("en-KE")} still owed.` } };
+
+  const paidAt = new Date(`${values.paidOn}T09:00:00Z`);
+  await db.transaction(async (tx) => {
+    // Oldest charge first; one payment row per charge it touches
+    let left = amount;
+    for (const c of charges) {
+      const part = Math.min(left, Math.max(Number(c.remaining), 0));
+      if (part <= 0) continue;
+      await tx.insert(schema.payments).values({
+        chargeId: c.id,
+        amountKes: part,
+        method: method!,
+        status: "succeeded",
+        paidAt,
+        recordedBy: viewer.profileId,
+        note: values.note.trim(),
+        mpesaReference: null,
+      });
+      left -= part;
+      if (left === 0) break;
+    }
+    await tx.insert(schema.activityLog).values({
+      studentId,
+      actorProfileId: viewer.profileId,
+      eventType: "payment_recorded",
+      details: { amountKes: amount, method },
+    });
+    await activateIfPaid(tx, enrolment);
+  });
+  await logAccess(viewer, studentId, "update", "payments");
+  refresh();
+  return { saved: Date.now() };
 }

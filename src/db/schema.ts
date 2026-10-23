@@ -40,7 +40,7 @@ export const userRole = pgEnum("user_role", ["student", "mentor", "admin"]);
 export const startPath = pgEnum("start_path", ["free_call", "apply_now"]);
 export const consultationStatus = pgEnum("consultation_status", ["booked", "completed", "cancelled", "no_show"]);
 export const enrolmentStatus = pgEnum("enrolment_status", ["pending_payment", "active", "completed", "cancelled"]);
-export const paymentMethod = pgEnum("payment_method", ["mpesa", "card"]);
+export const paymentMethod = pgEnum("payment_method", ["mpesa", "card", "bank_transfer", "cash"]);
 export const paymentStatus = pgEnum("payment_status", ["pending", "succeeded", "failed"]);
 export const sessionStatus = pgEnum("session_status", ["scheduled", "held", "missed", "cancelled"]);
 export const programmeStage = pgEnum("programme_stage", [
@@ -243,6 +243,10 @@ export const payments = pgTable(
     providerReference: text("provider_reference").unique(),
     failureReason: text("failure_reason"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    /** Set when an admin recorded a payment made outside Paystack (bank transfer, cash, direct M-Pesa). */
+    recordedBy: uuid("recorded_by").references(() => profiles.id, { onDelete: "set null" }),
+    /** The admin's note for a recorded payment, such as the bank's reference. */
+    note: text("note"),
     ...timestamps,
   },
   (t) => [check("payment_positive", sql`${t.amountKes} > 0`), index("payments_charge_idx").on(t.chargeId)],

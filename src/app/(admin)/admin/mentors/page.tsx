@@ -3,6 +3,7 @@ import { AdminPage, LoadError, Panel } from "@/components/admin/AdminPage";
 import { AddMentorForm, ApproveButton } from "@/components/admin/MentorForms";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { allMentors } from "@/lib/admin/data";
 import { initialsFor, requireViewer } from "@/lib/auth/dal";
@@ -51,7 +52,12 @@ async function Mentors() {
                     </span>
                   </div>
                 </div>
-                <ApproveButton mentorId={m.id} approved={m.approved} />
+                <span className="flex flex-wrap items-center gap-2 sm:justify-end">
+                  <Button variant="ghost" size="md" href={`/admin/mentors/${m.id}`}>
+                    Edit
+                  </Button>
+                  <ApproveButton mentorId={m.id} approved={m.approved} />
+                </span>
               </li>
             ))}
           </ul>

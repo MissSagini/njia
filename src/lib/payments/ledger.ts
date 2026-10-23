@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { adminDb, schema } from "@/db";
+import { adminDb, schema, type Tx } from "@/db";
 import type { Verified } from "./paystack";
 
 /**
@@ -61,7 +61,7 @@ export function afterPaidText(startPath: "free_call" | "apply_now") {
 }
 
 /** Plain-language reason for a failed payment, from Paystack's gateway response. */
-export function failureMessage(method: "mpesa" | "card", gatewayResponse: string | null): string {
+export function failureMessage(method: string, gatewayResponse: string | null): string {
   const r = (gatewayResponse ?? "").toLowerCase();
   if (method === "mpesa") {
     if (r.includes("insufficient")) return "There wasn't enough in the M-Pesa account. Top up, or ask your parent to pay, then try again.";
@@ -73,6 +73,20 @@ export function failureMessage(method: "mpesa" | "card", gatewayResponse: string
     return "Your bank declined the card. Many Kenyan cards have limits below this amount, so try M-Pesa or ask your bank to raise the limit.";
   }
   return "The card payment didn't go through. Try again, or pay by M-Pesa.";
+}
+
+/** After a succeeded payment: if nothing is owed any more, the enrolment becomes active. Returns whether it's fully paid. */
+export async function activateIfPaid(tx: Tx, enrolment: { id: string; status: string }): Promise<boolean> {
+  const [{ owed }] = await tx.execute<{ owed: number }>(sql`
+    select coalesce(sum(c.amount_kes), 0)::int - coalesce((
+      select sum(p.amount_kes) from payments p join charges c2 on c2.id = p.charge_id
+      where c2.enrolment_id = ${enrolment.id} and p.status = 'succeeded'), 0)::int as owed
+    from charges c where c.enrolment_id = ${enrolment.id}`);
+  const paid = owed <= 0;
+  if (paid && enrolment.status === "pending_payment") {
+    await tx.update(schema.enrolments).set({ status: "active" }).where(eq(schema.enrolments.id, enrolment.id));
+  }
+  return paid;
 }
 
 export type Settled = { status: "succeeded" | "failed" | "pending"; failureReason?: string | null; becamePaid?: boolean };
@@ -123,16 +137,7 @@ export async function settle(reference: string, verified: Verified): Promise<Set
     });
 
     if (status !== "succeeded") return { becamePaid: false, enrolment };
-    const [{ owed }] = await tx.execute<{ owed: number }>(sql`
-      select coalesce(sum(c.amount_kes), 0)::int - coalesce((
-        select sum(p.amount_kes) from payments p join charges c2 on c2.id = p.charge_id
-        where c2.enrolment_id = ${enrolment.id} and p.status = 'succeeded'), 0)::int as owed
-      from charges c where c.enrolment_id = ${enrolment.id}`);
-    const becamePaid = owed <= 0;
-    if (becamePaid && enrolment.status === "pending_payment") {
-      await tx.update(schema.enrolments).set({ status: "active" }).where(eq(schema.enrolments.id, enrolment.id));
-    }
-    return { becamePaid, enrolment };
+    return { becamePaid: await activateIfPaid(tx, enrolment), enrolment };
   });
 
   return { status, failureReason, becamePaid: outcome?.becamePaid ?? false };

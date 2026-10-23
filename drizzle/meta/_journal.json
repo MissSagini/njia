@@ -71,6 +71,13 @@
       "when": 1792792707595,
       "tag": "0009_slots_visible_to_booker",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792794000272,
+      "tag": "0010_offline_payments",
+      "breakpoints": true
     }
   ]
 }

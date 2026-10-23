@@ -46,7 +46,7 @@ async function StudentList() {
               {s.nextCallAt ? ` · call ${formatDayEat(s.nextCallAt)}, ${formatTimeEat(s.nextCallAt)}` : ""}
             </span>
           </div>
-          <StudentStatus mentorName={s.mentorName} balanceKes={s.balanceKes} hasEnrolment={!!s.enrolmentId} />
+          <StudentStatus mentorName={s.mentorName} balanceKes={s.balanceKes} hasEnrolment={!!s.enrolmentId} overdue={s.overdue} />
         </li>
       ))}
     </ul>

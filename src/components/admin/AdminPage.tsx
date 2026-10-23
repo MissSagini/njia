@@ -26,9 +26,21 @@ export function LoadError({ what }: { what: string }) {
 }
 
 /** Where a student is: paired, ready to pair (paid), or still to pay. */
-export function StudentStatus({ mentorName, balanceKes, hasEnrolment }: { mentorName: string | null; balanceKes: number; hasEnrolment: boolean }) {
+export function StudentStatus({
+  mentorName,
+  balanceKes,
+  hasEnrolment,
+  overdue,
+}: {
+  mentorName: string | null;
+  balanceKes: number;
+  hasEnrolment: boolean;
+  /** Paid more than 2 days ago and still not paired. */
+  overdue?: boolean;
+}) {
   if (!hasEnrolment) return <Badge variant="neutral">No enrolment</Badge>;
   if (mentorName) return <Badge variant="tag">Paired with {mentorName.split(" ")[0]}</Badge>;
+  if (overdue) return <Badge variant="dark">Overdue: pair now</Badge>;
   if (balanceKes === 0) return <Badge variant="ochre">Ready to pair</Badge>;
   return <Badge variant="neutral">{formatKes(balanceKes)} to pay</Badge>;
 }

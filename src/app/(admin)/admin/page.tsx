@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminPage, LoadError, Panel, StudentStatus } from "@/components/admin/AdminPage";
+import { Banner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { allMentors, allStudents, callSlots } from "@/lib/admin/data";
+import { allMentors, allStudents, callSlots, PAIRING_DAYS } from "@/lib/admin/data";
 import { requireViewer } from "@/lib/auth/dal";
 import { formatDayEat, formatTimeEat } from "@/lib/time";
 
@@ -26,13 +27,28 @@ async function Overview() {
     return <LoadError what="The overview" />;
   }
 
-  const unpaired = students.filter((s) => s.enrolmentId && !s.mentorName);
+  // Overdue first, then paid and waiting, then those still to pay
+  const rank = (s: (typeof students)[number]) => (s.overdue ? 0 : s.balanceKes === 0 ? 1 : 2);
+  const unpaired = students.filter((s) => s.enrolmentId && !s.mentorName).sort((a, b) => rank(a) - rank(b));
+  const overdue = unpaired.filter((s) => s.overdue);
   const booked = slots.filter((s) => s.booking?.status === "booked" && s.upcoming);
   const calls = booked.slice(0, 6);
   const waiting = mentors.filter((m) => !m.approved);
 
   return (
     <div className="flex flex-col gap-6">
+      {overdue.length ? (
+        <Banner tone="error" title={`${overdue.length} paid ${overdue.length === 1 ? "student has" : "students have"} waited more than ${PAIRING_DAYS} days for a mentor.`}>
+          We promise to pair within {PAIRING_DAYS} days of payment. Pair them today:{" "}
+          {overdue.map((s, i) => (
+            <span key={s.id}>
+              {i ? ", " : ""}
+              <Link href={`/admin/students/${s.id}`}>{s.fullName}</Link>
+            </span>
+          ))}
+          .
+        </Banner>
+      ) : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Waiting for a mentor" value={unpaired.length} href="/admin/students" />
         <Stat label="Free calls booked" value={booked.length} href="/admin/calls" />
@@ -46,7 +62,12 @@ async function Overview() {
               {unpaired.map((s) => (
                 <li key={s.id} className="flex min-h-12 flex-wrap items-center justify-between gap-2 border-t border-line py-2 first:border-t-0">
                   <Link href={`/admin/students/${s.id}`}>{s.fullName}</Link>
-                  <StudentStatus mentorName={null} balanceKes={s.balanceKes} hasEnrolment />
+                  <span className="flex flex-wrap items-center gap-2">
+                    {s.paidAt && !s.overdue ? (
+                      <span className="text-small text-ink-muted">pair by {formatDayEat(new Date(new Date(s.paidAt).getTime() + PAIRING_DAYS * 86_400_000))}</span>
+                    ) : null}
+                    <StudentStatus mentorName={null} balanceKes={s.balanceKes} hasEnrolment overdue={s.overdue} />
+                  </span>
                 </li>
               ))}
             </ul>
