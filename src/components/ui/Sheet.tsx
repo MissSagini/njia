@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { Icon } from "./Icon";
 
 type SheetProps = {
   open: boolean;
@@ -13,7 +14,7 @@ type SheetProps = {
 
 /**
  * Bottom sheet on mobile, centred 480px panel from sm up.
- * Closes with Escape or a tap on the scrim.
+ * Closes with the X button, Escape or a tap on the scrim.
  */
 export function Sheet({ open, onClose, title, description, children }: SheetProps) {
   const panel = useRef<HTMLDivElement>(null);
@@ -48,9 +49,19 @@ export function Sheet({ open, onClose, title, description, children }: SheetProp
         onClick={(e) => e.stopPropagation()}
         className="flex w-full flex-col gap-4 rounded-t-md bg-white px-5 pt-6 pb-[calc(32px+env(safe-area-inset-bottom))] shadow-lg outline-none sm:w-[480px] sm:rounded-md sm:p-8"
       >
-        <div className="flex flex-col gap-1">
-          <h2 className="m-0 type-heading">{title}</h2>
-          {description ? <p className="m-0 text-body text-ink-muted">{description}</p> : null}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="m-0 type-heading">{title}</h2>
+            {description ? <p className="m-0 text-body text-ink-muted">{description}</p> : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="-mt-2 -mr-2 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-forest hover:bg-forest-soft"
+          >
+            <Icon name="x" size={22} />
+          </button>
         </div>
         {children}
       </div>

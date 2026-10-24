@@ -360,7 +360,7 @@ The feel is soft but not bubbly.
 - **Empty.** One muted line ("Try one of these, or type your own.") above three starter questions as left-aligned choice chips.
 - **Loading.** The assistant's message shows "Writing an answer…" in {colors.text-muted} until the first words arrive, then fills in as it streams. The Send button shows its loading state.
 - **Hand-off.** When a person should take over, the assistant's message is followed by a Secondary "Book a free call" button and an Outline "Email us" button. Tapping either closes the sheet. If the assistant wrote nothing else, its message reads "A person on our team can help with that."
-- **Closing.** Closing the sheet stops an answer that's still coming in. Whatever had arrived stays in the conversation.
+- **Closing.** Closing the sheet, by the X, Escape, a tap outside or a hand-off button, stops any answer still coming in and clears the conversation, so it opens fresh next time.
 - **Error.** An error Banner above the input: "The assistant didn't answer. Try again, or email us at hello@njia.co.ke." The question goes back into the input so it isn't lost.
 - **Input.** A text input labelled "Your question" with a Secondary `md` Send button beside it. Under it, one {typography.small} line in {colors.text-muted}: "AI can make mistakes. Check important details with us."
 
@@ -368,7 +368,7 @@ The feel is soft but not bubbly.
 - **Sheet or modal.** A full-screen Ink scrim at 55%.
   - Mobile: the sheet comes up from the bottom with 12px top corners.
   - Desktop: a centred 480px panel.
-  - Both use `shadow-lg` and close with Escape or a tap outside.
+  - Both use `shadow-lg` and close with an X button in the top-right corner (44px, {colors.forest} icon, {colors.forest-soft} on hover, labelled "Close"), Escape or a tap outside.
 - **Toast.** An {colors.ink} bar with {colors.cream} text, 12px corners and `shadow-lg`, with an {colors.ochre} check circle. It sits above the tab bar and disappears after 3 seconds.
 - **Avatar.** A {rounded.pill} circle with initials. It is {colors.forest} with white text, or {colors.forest-soft} with Forest text.
 

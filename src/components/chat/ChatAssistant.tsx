@@ -38,10 +38,14 @@ export function ChatAssistant() {
   const [error, setError] = useState<string>();
   const end = useRef<HTMLDivElement>(null);
   const pending = useRef<AbortController | null>(null);
-  // Closing the chat stops an answer that's still coming, so nobody pays for words nobody reads
+  // Closing stops an answer that's still coming (so nobody pays for words nobody reads)
+  // and clears the conversation, so the chat opens fresh next time
   const close = useCallback(() => {
     pending.current?.abort();
     setOpen(false);
+    setMessages([]);
+    setDraft("");
+    setError(undefined);
   }, []);
 
   useEffect(() => () => pending.current?.abort(), []);
@@ -74,20 +78,14 @@ export function ChatAssistant() {
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
       for (;;) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done || controller.signal.aborted) break;
         reply += value;
         setMessages([...history, { role: "assistant", content: reply }]);
       }
       if (!visible(reply) && !reply.includes(HANDOFF)) throw new Error("failed");
     } catch (e) {
-      // Closed partway through: keep what arrived, or quietly drop the question
-      if (controller.signal.aborted) {
-        if (!visible(reply)) {
-          setMessages(history.slice(0, -1));
-          setDraft(q);
-        }
-        return;
-      }
+      // Closed partway through: the conversation has already been cleared
+      if (controller.signal.aborted) return;
       setMessages(history.slice(0, -1));
       setDraft(q);
       setError(
