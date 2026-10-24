@@ -41,11 +41,12 @@ export function CallEditor({ consultationId, meetLink, status }: { consultationI
           value={link}
           onChange={(e) => setLink(e.target.value)}
           error={state.fieldErrors?.meetLink}
-          hint="Email it to the student and parent too."
+          hint="When you save a new link, we email it to the student and parent."
         />
         <Select label="Status" name="status" options={STATUSES} value={value} onChange={(e) => setValue(e.target.value)} />
       </div>
       {state.error ? <Banner tone="error">{state.error}</Banner> : null}
+      {state.notice ? <Banner tone={state.notice.includes("didn't go") ? "error" : "success"}>{state.notice}</Banner> : null}
       <Button type="submit" variant="secondary" size="md" loading={pending} className="self-start">
         {pending ? "Saving…" : "Save call"}
       </Button>

@@ -9,6 +9,7 @@ import { serverEnv } from "@/lib/env";
 import { contactSchema, PARENT_EMAIL_DIFFERENT, type ContactField } from "@/lib/goals";
 import { meetLinkSchema } from "@/lib/links";
 import { activateIfPaid } from "@/lib/payments/ledger";
+import { sendCallLink, sendPairingEmails, sendPaymentNudge, type Sent } from "@/lib/email/notifications";
 import { sendEmail } from "@/lib/email/send";
 import { buildWeeklyReport, renderWeeklyReport, sendWeeklyReports } from "@/lib/reports/weekly";
 import { resendEnv } from "@/lib/env";
@@ -30,9 +31,15 @@ function pgCode(error: unknown): string | undefined {
   }
 }
 
+/** One line for the admin about an email that went (or didn't). */
+function emailNotice(result: Sent, ok: string): string {
+  if (result.errors.length) return `The email didn't go: ${result.errors.join("; ")}`;
+  return result.sent ? ok : "";
+}
+
 // ---------------------------------------------------------------- pairing
 
-export type PairState = { error?: string; paired?: number };
+export type PairState = { error?: string; paired?: number; notice?: string };
 
 /** Pairs a student with an approved mentor, or moves them to another one. */
 export async function pairStudent(_prev: PairState, formData: FormData): Promise<PairState> {
@@ -65,8 +72,9 @@ export async function pairStudent(_prev: PairState, formData: FormData): Promise
     });
   });
   await logAccess(viewer, studentId, "update", "pairing");
+  const mail = await sendPairingEmails(enrolment.id, viewer.profileId);
   refresh();
-  return { paired: Date.now() };
+  return { paired: Date.now(), notice: emailNotice(mail, "We've emailed the student and the mentor.") };
 }
 
 // ---------------------------------------------------------------- free call times
@@ -119,7 +127,7 @@ export async function removeCallTime(id: string): Promise<{ error?: string }> {
   return {};
 }
 
-export type CallState = { error?: string; fieldErrors?: { meetLink?: string }; saved?: number };
+export type CallState = { error?: string; fieldErrors?: { meetLink?: string }; saved?: number; notice?: string };
 
 const CALL_STATUSES = ["booked", "completed", "no_show", "cancelled"] as const;
 
@@ -147,8 +155,18 @@ export async function updateCall(_prev: CallState, formData: FormData): Promise<
     }
   });
   await logAccess(viewer, call.studentId, "update", "consultation");
+
+  // A new link goes to the student and parent; a held call starts the payment nudge
+  const notices: string[] = [];
+  if (link.data && link.data !== call.meetLink) {
+    notices.push(emailNotice(await sendCallLink(id, viewer.profileId), "Emailed the link to the student and parent."));
+  }
+  if (status.data === "completed" && call.status !== "completed") {
+    const nudge = await sendPaymentNudge(call.studentId, "after_call", viewer.profileId);
+    if (nudge.sent || nudge.errors.length) notices.push(emailNotice(nudge, "Emailed them how to pay."));
+  }
   refresh();
-  return { saved: Date.now() };
+  return { saved: Date.now(), notice: notices.join(" ") || undefined };
 }
 
 // ---------------------------------------------------------------- mentors

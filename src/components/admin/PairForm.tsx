@@ -45,6 +45,7 @@ export function PairForm({ studentId, currentMentorId, mentors, unpaid }: { stud
         }))}
       />
       {state.error ? <Banner tone="error">{state.error}</Banner> : null}
+      {state.notice ? <Banner tone={state.notice.includes("didn't go") ? "error" : "success"}>{state.notice}</Banner> : null}
       <Button type="submit" variant="primary" loading={pending} disabled={!mentorId || mentorId === currentMentorId} className="self-start">
         {pending ? "Pairing…" : currentMentorId ? "Change mentor" : "Pair with this mentor"}
       </Button>

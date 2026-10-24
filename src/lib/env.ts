@@ -63,7 +63,14 @@ export function paystackEnv() {
  */
 export function resendEnv() {
   const key = process.env.RESEND_API_KEY;
-  return key ? { RESEND_API_KEY: key, EMAIL_FROM: process.env.EMAIL_FROM || "Njia <onboarding@resend.dev>" } : null;
+  return key
+    ? {
+        RESEND_API_KEY: key,
+        EMAIL_FROM: process.env.EMAIL_FROM || "Njia <onboarding@resend.dev>",
+        /** Local testing only: send every email here instead, with the real recipient in the subject. */
+        EMAIL_REDIRECT_TO: process.env.EMAIL_REDIRECT_TO || null,
+      }
+    : null;
 }
 
 /** Shared secret Vercel Cron sends as "Authorization: Bearer …", or null if unset. */

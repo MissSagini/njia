@@ -12,8 +12,8 @@ export async function sendEmail(input: { to: string; subject: string; html: stri
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: env.EMAIL_FROM,
-      to: [input.to],
-      subject: input.subject,
+      to: [env.EMAIL_REDIRECT_TO ?? input.to],
+      subject: env.EMAIL_REDIRECT_TO ? `[to ${input.to}] ${input.subject}` : input.subject,
       html: input.html,
       text: input.text,
       reply_to: input.replyTo,
