@@ -8,7 +8,7 @@ import { logAccess } from "@/lib/auth/dal";
 export const MIN_NOTICE_HOURS = 12;
 export const BOOKING_WINDOW_DAYS = 28;
 
-export type SessionTask = { id: string; description: string; done: boolean };
+export type SessionTask = { id: string; description: string; done: boolean; workUrl: string | null };
 export type SessionItem = {
   id: string;
   startsAt: string;
@@ -67,7 +67,7 @@ async function loadSessions(tx: Tx, enrolmentId: string): Promise<SessionItem[]>
 
   const taskRows = rows.length
     ? await tx
-        .select({ id: tasks.id, sessionId: tasks.sessionId, description: tasks.description, done: tasks.done })
+        .select({ id: tasks.id, sessionId: tasks.sessionId, description: tasks.description, done: tasks.done, workUrl: tasks.workUrl })
         .from(tasks)
         .where(inArray(tasks.sessionId, rows.map((r) => r.id)))
         .orderBy(asc(tasks.position), asc(tasks.createdAt))
@@ -77,7 +77,7 @@ async function loadSessions(tx: Tx, enrolmentId: string): Promise<SessionItem[]>
     ...r,
     startsAt: r.startsAt.toISOString(),
     endsAt: (r.endsAt ?? new Date(r.startsAt.getTime() + SESSION_MINUTES * 60_000)).toISOString(),
-    tasks: taskRows.filter((t) => t.sessionId === r.id).map(({ id, description, done }) => ({ id, description, done })),
+    tasks: taskRows.filter((t) => t.sessionId === r.id).map(({ id, description, done, workUrl }) => ({ id, description, done, workUrl })),
   }));
 }
 

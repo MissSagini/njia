@@ -47,8 +47,9 @@ export default function PrivacyPage() {
               invite.
             </>,
             <>
-              <strong>Your mentoring:</strong> call and session times, your mentor&apos;s notes, your weekly tasks and which ones
-              you&apos;ve ticked off.
+              <strong>Your mentoring:</strong> call and session times, your mentor&apos;s notes, your weekly tasks, which ones
+              you&apos;ve ticked off, and links to work you share with your mentor. We keep the link, not the document: it stays
+              wherever you saved it, such as Google Docs.
             </>,
             <>
               <strong>Payments:</strong> the amount, the date, how it was paid and, for M-Pesa, the phone number the prompt went

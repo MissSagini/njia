@@ -78,6 +78,13 @@
       "when": 1792794000272,
       "tag": "0010_offline_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792828840475,
+      "tag": "0011_task_work_links",
+      "breakpoints": true
     }
   ]
 }

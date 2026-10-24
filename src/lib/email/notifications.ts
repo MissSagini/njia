@@ -265,3 +265,32 @@ export async function sendOverdueDigest(): Promise<Sent & { overdue: number }> {
   const result = await deliver(admins.map((a) => ({ to: a.email, subject: `Njia: ${overdue.length} waiting for a mentor`, ...content })));
   return { ...result, overdue: overdue.length };
 }
+
+// ---------------------------------------------------------------- shared work
+
+/** Tells the mentor their student has shared work for a task. */
+export async function sendTaskWorkEmail(taskId: string): Promise<Sent> {
+  const [row] = await adminDb()
+    .select({ task: schema.tasks, student: schema.students, mentor: schema.mentors })
+    .from(schema.tasks)
+    .innerJoin(schema.sessions, eq(schema.sessions.id, schema.tasks.sessionId))
+    .innerJoin(schema.enrolments, eq(schema.enrolments.id, schema.sessions.enrolmentId))
+    .innerJoin(schema.students, eq(schema.students.id, schema.enrolments.studentId))
+    .innerJoin(schema.mentors, eq(schema.mentors.id, schema.sessions.mentorId))
+    .where(eq(schema.tasks.id, taskId));
+  if (!row?.task.workUrl) return { sent: 0, errors: [] };
+  const { task, student, mentor } = row;
+
+  const content = renderEmail({
+    eyebrow: "Shared work",
+    title: `${first(student.fullName)} shared their work.`,
+    paragraphs: [`Hi ${first(mentor.fullName)}, ${first(student.fullName)} has added their work for this task:`],
+    rows: [["Task", task.description]],
+    button: { label: "Open the work", url: task.workUrl! },
+    after: [
+      "If the link asks for access, ask them to share it with your email. You can leave comments in the document and add notes on their Sessions page.",
+    ],
+    footer: "You're getting this because you're a Njia mentor.",
+  });
+  return deliver([{ to: mentor.email, subject: `${first(student.fullName)} shared work: ${task.description}`, ...content }]);
+}

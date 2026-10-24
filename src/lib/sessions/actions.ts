@@ -7,7 +7,8 @@ import { z } from "zod";
 import { adminDb, asUser, schema } from "@/db";
 import { logAccess, requireViewer, type Viewer } from "@/lib/auth/dal";
 import { calendarConnected, createMeetEvent } from "@/lib/google/calendar";
-import { meetLinkSchema } from "@/lib/links";
+import { sendTaskWorkEmail } from "@/lib/email/notifications";
+import { meetLinkSchema, workLinkSchema } from "@/lib/links";
 import { isTimeZone, zonedToUtc } from "@/lib/time";
 import { MIN_NOTICE_HOURS } from "./data";
 
@@ -219,6 +220,43 @@ async function mentorSessionRow(viewer: Viewer, sessionId: string) {
       .where(and(eq(schema.sessions.id, sessionId), eq(schema.sessions.mentorId, mentor.id)));
     return row ?? null;
   });
+}
+
+export type WorkState = { error?: string; saved?: number; removed?: boolean };
+
+/** The student adds, changes or removes the link to their work for a task. */
+export async function shareTaskWork(_prev: WorkState, formData: FormData): Promise<WorkState> {
+  const viewer = await requireViewer(["student"]);
+  const taskId = String(formData.get("taskId") ?? "");
+  if (!z.uuid().safeParse(taskId).success) return { error: SOMETHING_WRONG };
+  const link = workLinkSchema.safeParse(String(formData.get("workUrl") ?? ""));
+  if (!link.success) return { error: link.error.issues[0].message };
+
+  // Only tasks on the student's own sessions are visible to them
+  const task = await asUser(viewer.claims, async (tx) => {
+    const studentId = (await tx.query.students.findFirst({ where: eq(schema.students.profileId, viewer.profileId) }))?.id;
+    const row = await tx.query.tasks.findFirst({ where: eq(schema.tasks.id, taskId) });
+    return row && studentId ? { ...row, studentId } : null;
+  });
+  if (!task) return { error: SOMETHING_WRONG };
+  if (task.workUrl === link.data) return { saved: Date.now() };
+
+  await adminDb().transaction(async (tx) => {
+    await tx
+      .update(schema.tasks)
+      .set({ workUrl: link.data, workSharedAt: link.data ? new Date() : null })
+      .where(eq(schema.tasks.id, taskId));
+    await tx.insert(schema.activityLog).values({
+      studentId: task.studentId,
+      actorProfileId: viewer.profileId,
+      eventType: link.data ? "task_work_shared" : "task_work_removed",
+      details: { taskId },
+    });
+  });
+  // The mentor hears about new work; a failed email doesn't undo the save
+  if (link.data) await sendTaskWorkEmail(taskId);
+  refresh();
+  return link.data ? { saved: Date.now() } : { removed: true, saved: Date.now() };
 }
 
 // ---------------------------------------------------------------- mentor: notes and tasks

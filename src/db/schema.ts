@@ -296,6 +296,9 @@ export const tasks = pgTable(
     position: smallint("position").notNull().default(0),
     done: boolean("done").notNull().default(false),
     doneAt: timestamp("done_at", { withTimezone: true }),
+    /** A link to the student's work for this task (for example a Google Doc). Njia never stores the file. */
+    workUrl: text("work_url"),
+    workSharedAt: timestamp("work_shared_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [index("tasks_session_idx").on(t.sessionId)],

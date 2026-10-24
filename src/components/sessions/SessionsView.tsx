@@ -21,8 +21,10 @@ import {
   saveSessionNotes,
   setSessionOutcome,
   setTaskDone,
+  shareTaskWork,
   type NotesState,
   type TaskState,
+  type WorkState,
 } from "@/lib/sessions/actions";
 import type { SessionItem, SessionsData, SessionTask } from "@/lib/sessions/data";
 import { formatLongDay, formatMonth, formatTime, monthKey, zoneLabel } from "@/lib/time";
@@ -221,10 +223,86 @@ function StudentTasks({ tasks }: { tasks: SessionTask[] }) {
   return (
     <FormGroup legend="Tasks for this week">
       {optimistic.map((t) => (
-        <Checkbox key={t.id} label={t.description} checked={t.done} strikeWhenChecked onChange={(done) => toggle(t.id, done)} />
+        <div key={t.id} className="flex flex-col border-b border-line pb-2 last:border-b-0">
+          <Checkbox label={t.description} checked={t.done} strikeWhenChecked onChange={(done) => toggle(t.id, done)} />
+          <TaskWork task={t} />
+        </div>
       ))}
       <FieldHelp id="tasks-help" error={error} />
     </FormGroup>
+  );
+}
+
+/** The student shares a link to their work for a task, such as a Google Doc. */
+function TaskWork({ task }: { task: SessionTask }) {
+  const [state, action, pending] = useActionState<WorkState, FormData>(shareTaskWork, {});
+  const [editing, setEditing] = useState(false);
+  const [seen, setSeen] = useState(state);
+  const [toast, setToast] = useState<string>();
+  if (state !== seen) {
+    setSeen(state);
+    if (state.saved) {
+      setEditing(false);
+      setToast(state.removed ? "Link removed" : "Shared with your mentor");
+    }
+  }
+  const toastEl = toast ? <Toast onDismiss={() => setToast(undefined)}>{toast}</Toast> : null;
+
+  if (editing) {
+    return (
+      <form action={action} noValidate className="m-0 flex flex-col gap-2 pb-1 pl-8">
+        {toastEl}
+        <input type="hidden" name="taskId" value={task.id} />
+        <TextInput
+          label="Link to your work"
+          name="workUrl"
+          type="url"
+          inputMode="url"
+          placeholder="https://docs.google.com/…"
+          defaultValue={task.workUrl ?? ""}
+          hint="Share the document with your mentor first, so they can open it."
+          error={state.error}
+          autoFocus
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" variant="secondary" size="md" loading={pending}>
+            {pending ? "Sharing…" : "Share with my mentor"}
+          </Button>
+          <Button variant="ghost" size="md" disabled={pending} onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 pl-8 text-small">
+      {toastEl}
+      {task.workUrl ? (
+        <>
+          <a href={task.workUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-sm">
+            <Icon name="file-text" size={16} />
+            Your work
+          </a>
+          <button type="button" onClick={() => setEditing(true)} className="min-h-11 cursor-pointer border-0 bg-transparent px-1 text-small text-forest underline">
+            Change link
+          </button>
+          <form action={action} className="m-0">
+            <input type="hidden" name="taskId" value={task.id} />
+            <input type="hidden" name="workUrl" value="" />
+            <button type="submit" disabled={pending} className="min-h-11 cursor-pointer border-0 bg-transparent px-1 text-small text-ink-muted underline">
+              Remove
+            </button>
+          </form>
+        </>
+      ) : (
+        <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 cursor-pointer items-center gap-1 border-0 bg-transparent px-0 text-small text-forest underline">
+          <Icon name="plus" size={16} />
+          Add a link to your work
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -369,7 +447,15 @@ function MentorTasks({ session }: { session: SessionItem }) {
             <li key={t.id} className="flex min-h-11 items-center justify-between gap-3 border-b border-line py-1 last:border-b-0">
               <span className="flex items-start gap-2">
                 <Icon name={t.done ? "check" : "list-checks"} size={18} color="var(--color-forest)" style={{ marginTop: 4 }} />
-                <span className={t.done ? "text-ink-muted line-through" : ""}>{t.description}</span>
+                <span className="flex flex-col">
+                  <span className={t.done ? "text-ink-muted line-through" : ""}>{t.description}</span>
+                  {t.workUrl ? (
+                    <a href={t.workUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 self-start rounded-sm text-small">
+                      <Icon name="file-text" size={16} />
+                      Open the work
+                    </a>
+                  ) : null}
+                </span>
               </span>
               <button
                 type="button"
