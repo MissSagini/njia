@@ -352,6 +352,17 @@ The feel is soft but not bubbly.
   - Mobile: a {colors.surface} bottom tab bar with three or four tabs, each with an icon and a label. The active tab gets a {colors.forest-soft} pill and every tab is at least 44px tall.
 - **Footer.** {colors.dark} background with the dark lockup, a Fraunces tagline, {colors.accent} column labels and {colors.text-on-dark} links.
 
+### Chat assistant
+- **Where.** Website pages only, for visitors and parents. It is hidden until it is set up.
+- **Launcher.** A Secondary `md` button, "Ask a question" with the message icon, fixed 16px from the bottom-right corner with `shadow-lg`. It is never Sunset, which stays free for each page's hero button.
+- **Window.** The Sheet: a bottom sheet on mobile and a centred 480px panel from `sm` up. The title is "Ask a question." and the description says that answers come from AI, can be wrong, and that people shouldn't share personal details.
+- **Messages.** The conversation scrolls inside the sheet, up to half the screen height. The visitor's messages sit on the right on {colors.forest-soft}. The assistant's sit on the left on {colors.cream} with a 1px {colors.border} border. Both use {rounded.md} corners, the {typography.body} style and at most 85% of the width.
+- **Empty.** One muted line ("Try one of these, or type your own.") above three starter questions as left-aligned choice chips.
+- **Loading.** The assistant's message shows "Writing an answer…" in {colors.text-muted} until the first words arrive, then fills in as it streams. The Send button shows its loading state.
+- **Hand-off.** When a person should take over, the assistant's message is followed by a Secondary "Book a free call" button and an Outline "Email us" button.
+- **Error.** An error Banner above the input: "The assistant didn't answer. Try again, or email us at hello@njia.co.ke." The question goes back into the input so it isn't lost.
+- **Input.** A text input labelled "Your question" with a Secondary `md` Send button beside it.
+
 ### Feedback layers
 - **Sheet or modal.** A full-screen Ink scrim at 55%.
   - Mobile: the sheet comes up from the bottom with 12px top corners.

@@ -102,6 +102,7 @@ export default function PrivacyPage() {
           items={[
             "Supabase, which stores our database and handles logins. Its servers are in the European Union (Ireland).",
             "Paystack, which takes M-Pesa and card payments.",
+            "Google (the Gemini API), whose AI answers questions typed into the website's chat assistant. The assistant can't see any account, so please don't type personal details into it.",
             "Our website host and our email service, which we'll name here before launch.",
           ]}
         />

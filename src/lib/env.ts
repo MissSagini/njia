@@ -73,6 +73,16 @@ export function resendEnv() {
     : null;
 }
 
+/**
+ * Google's Gemini API, for the website's chat assistant, or null until both the
+ * key and the model are set. Without them the assistant is hidden.
+ */
+export function geminiEnv() {
+  const key = process.env.GEMINI_API_KEY;
+  const model = process.env.GEMINI_MODEL;
+  return key && model ? { GEMINI_API_KEY: key, GEMINI_MODEL: model } : null;
+}
+
 /** Shared secret Vercel Cron sends as "Authorization: Bearer …", or null if unset. */
 export function cronSecret() {
   return process.env.CRON_SECRET || null;
