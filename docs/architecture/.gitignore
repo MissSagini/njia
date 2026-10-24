@@ -1,0 +1,6 @@
+# Archify check receipts: regenerated on every run and they contain local paths
+*.finalize.json
+*.finalize-summary.json
+*.browser-check.json
+*.delivery.json
+review-*/

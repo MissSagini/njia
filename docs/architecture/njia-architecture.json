@@ -1,0 +1,554 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Njia application architecture",
+    "output": "docs/architecture/njia-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/MissSagini/njia.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "f98284a24c88b937fcdee947543161b1d711c236"
+    }
+  },
+  "components": [
+    {
+      "id": "visitors",
+      "type": "external",
+      "label": "Visitors",
+      "sublabel": "students browsing, no login",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "icon": "person"
+    },
+    {
+      "id": "members",
+      "type": "external",
+      "label": "Students, mentors, admins",
+      "sublabel": "email + password login",
+      "pos": [
+        460,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "icon": "person"
+    },
+    {
+      "id": "parents",
+      "type": "external",
+      "label": "Parents",
+      "sublabel": "no login: links and email",
+      "pos": [
+        670,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "icon": "person"
+    },
+    {
+      "id": "website",
+      "type": "frontend",
+      "label": "Website pages",
+      "sublabel": "(site) routes + chat widget",
+      "pos": [
+        40,
+        180
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/app/(site)/layout.tsx",
+          "line": 1,
+          "end_line": 16,
+          "label": "site layout, chat widget"
+        }
+      ]
+    },
+    {
+      "id": "gemini",
+      "type": "external",
+      "label": "Google Gemini API",
+      "sublabel": "streamed chat replies",
+      "pos": [
+        250,
+        180
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/lib/chat/gemini.ts",
+          "line": 11,
+          "end_line": 27,
+          "label": "streamGenerateContent call"
+        }
+      ]
+    },
+    {
+      "id": "proxy",
+      "type": "security",
+      "label": "Proxy",
+      "sublabel": "session refresh, role redirect",
+      "pos": [
+        460,
+        180
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/proxy.ts",
+          "line": 12,
+          "end_line": 43,
+          "label": "proxy()"
+        }
+      ]
+    },
+    {
+      "id": "checkout",
+      "type": "frontend",
+      "label": "Checkout /pay/[token]",
+      "sublabel": "signed payment link",
+      "pos": [
+        670,
+        180
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/app/(checkout)/pay/[token]/page.tsx",
+          "line": 19,
+          "end_line": 32,
+          "label": "PayPage"
+        }
+      ]
+    },
+    {
+      "id": "getstarted",
+      "type": "backend",
+      "label": "Get started action",
+      "sublabel": "login, student, enrolment, charge",
+      "pos": [
+        40,
+        320
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/app/(site)/get-started/actions.ts",
+          "line": 43,
+          "end_line": 43,
+          "label": "submitGoals"
+        },
+        {
+          "path": "src/app/(site)/get-started/actions.ts",
+          "line": 92,
+          "end_line": 141,
+          "label": "createUser + inserts"
+        }
+      ]
+    },
+    {
+      "id": "chat",
+      "type": "backend",
+      "label": "Chat API",
+      "sublabel": "/api/chat: same-site, rate limit",
+      "pos": [
+        250,
+        320
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/app/api/chat/route.ts",
+          "line": 57,
+          "end_line": 76,
+          "label": "POST handler"
+        },
+        {
+          "path": "src/lib/chat/knowledge.ts",
+          "line": 11,
+          "end_line": 17,
+          "label": "cached package price"
+        }
+      ]
+    },
+    {
+      "id": "areas",
+      "type": "backend",
+      "label": "Signed-in areas",
+      "sublabel": "student, mentor, admin actions",
+      "pos": [
+        460,
+        320
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "requireViewer",
+      "sources": [
+        {
+          "path": "src/components/navigation/SignedInShell.tsx",
+          "line": 14,
+          "end_line": 29,
+          "label": "SignedInShell"
+        },
+        {
+          "path": "src/lib/auth/dal.ts",
+          "line": 55,
+          "end_line": 67,
+          "label": "requireViewer"
+        },
+        {
+          "path": "src/lib/sessions/actions.ts",
+          "line": 38,
+          "end_line": 56,
+          "label": "bookSession example"
+        }
+      ]
+    },
+    {
+      "id": "payments",
+      "type": "backend",
+      "label": "Payments ledger",
+      "sublabel": "startPayment, settle()",
+      "pos": [
+        670,
+        320
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/lib/payments/actions.ts",
+          "line": 32,
+          "end_line": 91,
+          "label": "startPayment"
+        },
+        {
+          "path": "src/lib/payments/ledger.ts",
+          "line": 99,
+          "end_line": 133,
+          "label": "settle()"
+        },
+        {
+          "path": "src/app/api/paystack/webhook/route.ts",
+          "line": 10,
+          "end_line": 34,
+          "label": "webhook"
+        }
+      ]
+    },
+    {
+      "id": "paystack",
+      "type": "external",
+      "label": "Paystack",
+      "sublabel": "M-Pesa and cards",
+      "pos": [
+        980,
+        320
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/lib/payments/paystack.ts",
+          "line": 10,
+          "end_line": 75,
+          "label": "Paystack client"
+        }
+      ]
+    },
+    {
+      "id": "supabase",
+      "type": "database",
+      "label": "Supabase (EU)",
+      "sublabel": "Postgres with RLS + Auth",
+      "pos": [
+        40,
+        470
+      ],
+      "size": [
+        800,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/db/index.ts",
+          "line": 21,
+          "end_line": 43,
+          "label": "adminDb / asUser"
+        },
+        {
+          "path": "src/lib/supabase/server.ts",
+          "line": 1,
+          "end_line": 27,
+          "label": "Supabase server client"
+        }
+      ]
+    },
+    {
+      "id": "jobs",
+      "type": "backend",
+      "label": "Scheduled jobs",
+      "sublabel": "weekly report, daily nudges",
+      "pos": [
+        980,
+        470
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/app/api/cron/weekly-report/route.ts",
+          "line": 9,
+          "end_line": 14,
+          "label": "weekly report route"
+        },
+        {
+          "path": "src/app/api/cron/daily/route.ts",
+          "line": 10,
+          "end_line": 16,
+          "label": "daily route"
+        }
+      ]
+    },
+    {
+      "id": "resend",
+      "type": "external",
+      "label": "Resend",
+      "sublabel": "transactional email",
+      "pos": [
+        1250,
+        470
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/lib/email/send.ts",
+          "line": 7,
+          "end_line": 10,
+          "label": "sendEmail"
+        }
+      ]
+    },
+    {
+      "id": "cron",
+      "type": "cloud",
+      "label": "Vercel Cron",
+      "sublabel": "Fri 14:00 and daily 06:00 UTC",
+      "pos": [
+        980,
+        610
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "icon": "clock",
+      "sources": [
+        {
+          "path": "vercel.json",
+          "line": 1,
+          "end_line": 6,
+          "label": "cron schedule"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "visit-site",
+      "from": "visitors",
+      "to": "website",
+      "label": "browse",
+      "variant": "emphasis"
+    },
+    {
+      "id": "submit-goals",
+      "from": "website",
+      "to": "getstarted",
+      "label": "submit goals",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ask-chat",
+      "from": "website",
+      "to": "chat",
+      "label": "ask a question"
+    },
+    {
+      "id": "chat-gemini",
+      "from": "chat",
+      "to": "gemini",
+      "label": "stream reply"
+    },
+    {
+      "id": "chat-price",
+      "from": "chat",
+      "to": "supabase",
+      "label": "read price"
+    },
+    {
+      "id": "create-records",
+      "from": "getstarted",
+      "to": "supabase",
+      "label": "create login + records",
+      "variant": "emphasis"
+    },
+    {
+      "id": "log-in",
+      "from": "members",
+      "to": "proxy",
+      "label": "log in"
+    },
+    {
+      "id": "role-redirect",
+      "from": "proxy",
+      "to": "areas",
+      "label": "by role",
+      "variant": "security"
+    },
+    {
+      "id": "areas-db",
+      "from": "areas",
+      "to": "supabase",
+      "label": "asUser (RLS)",
+      "variant": "security"
+    },
+    {
+      "id": "pay-link",
+      "from": "parents",
+      "to": "checkout",
+      "label": "open link"
+    },
+    {
+      "id": "start-pay",
+      "from": "checkout",
+      "to": "payments",
+      "label": "start payment"
+    },
+    {
+      "id": "charge",
+      "from": "payments",
+      "to": "paystack",
+      "label": "charge, verify"
+    },
+    {
+      "id": "webhook",
+      "from": "paystack",
+      "to": "payments",
+      "label": "webhook",
+      "variant": "dashed"
+    },
+    {
+      "id": "settle",
+      "from": "payments",
+      "to": "supabase",
+      "label": "settle()"
+    },
+    {
+      "id": "trigger",
+      "from": "cron",
+      "to": "jobs",
+      "label": "CRON_SECRET",
+      "variant": "security"
+    },
+    {
+      "id": "jobs-read",
+      "from": "jobs",
+      "to": "supabase",
+      "label": "read the week"
+    },
+    {
+      "id": "jobs-send",
+      "from": "jobs",
+      "to": "resend",
+      "label": "send email"
+    },
+    {
+      "id": "email-parents",
+      "from": "resend",
+      "to": "parents",
+      "label": "weekly report",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Two start paths",
+      "items": [
+        "Free call: book a consultation slot on Get started",
+        "Apply now: pay first, paired within 2 days",
+        "Both email a set-password link straight away"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Access control",
+      "items": [
+        "Proxy refreshes the session and redirects by role",
+        "requireViewer re-checks the role from the database",
+        "Reads run through asUser so row-level security applies; adminDb only after a server check"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Payments",
+      "items": [
+        "A ledger: enrolments, charges, payments",
+        "A payment counts only after Paystack's API verifies it",
+        "settle() moves each payment out of pending once"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Not connected yet",
+      "items": [
+        "Google Calendar code exists but has no credentials, so Meet links are added by hand",
+        "Chat assistant stays hidden until GEMINI_* is set"
+      ]
+    }
+  ]
+}
