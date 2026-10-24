@@ -29,7 +29,9 @@ export async function streamReply(system: string, messages: ChatMessage[], signa
   let res = await request();
   // Gemini is briefly overloaded now and then (503): try once more before giving up
   if (res.status === 503 || res.status === 500) {
+    await res.body?.cancel();
     await new Promise((resolve) => setTimeout(resolve, 1000));
+    if (signal.aborted) return null;
     res = await request();
   }
   if (!res.ok || !res.body) {
@@ -39,31 +41,37 @@ export async function streamReply(system: string, messages: ChatMessage[], signa
 
   // Server-sent events: one "data: {json}" line per chunk of the reply
   let buffer = "";
+  const readLine = (line: string, controller: TransformStreamDefaultController<string>) => {
+    if (!line.startsWith("data: ")) return;
+    let event;
+    try {
+      event = JSON.parse(line.slice(6));
+    } catch {
+      return; // A malformed event: skip it rather than end the reply
+    }
+    if (event.error) {
+      console.error("Gemini stream error", event.error.code ?? "");
+      controller.error(new Error("Gemini stream error"));
+      return;
+    }
+    const parts: { text?: string; thought?: boolean }[] = event.candidates?.[0]?.content?.parts ?? [];
+    const text = parts
+      .filter((p) => !p.thought)
+      .map((p) => p.text ?? "")
+      .join("");
+    if (text) controller.enqueue(text);
+  };
   return res.body.pipeThrough(new TextDecoderStream()).pipeThrough(
     new TransformStream<string, string>({
       transform(chunk, controller) {
         buffer += chunk;
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.error) {
-              console.error("Gemini stream error", event.error.code ?? "");
-              controller.error(new Error("Gemini stream error"));
-              return;
-            }
-            const parts: { text?: string; thought?: boolean }[] = event.candidates?.[0]?.content?.parts ?? [];
-            const text = parts
-              .filter((p) => !p.thought)
-              .map((p) => p.text ?? "")
-              .join("");
-            if (text) controller.enqueue(text);
-          } catch {
-            // A malformed event: skip it rather than end the reply
-          }
-        }
+        for (const line of lines) readLine(line, controller);
+      },
+      // The last event may arrive without a closing newline
+      flush(controller) {
+        readLine(buffer, controller);
       },
     }),
   );

@@ -10,3 +10,6 @@ export const MAX_QUESTION_LENGTH = 600;
 
 /** How many recent messages are sent with each question. */
 export const MAX_HISTORY = 12;
+
+/** Earlier answers are cut to this length when sent back as history, so a long answer never blocks the next question. */
+export const MAX_REPLY_HISTORY = 4000;

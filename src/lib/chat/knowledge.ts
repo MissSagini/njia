@@ -1,9 +1,19 @@
 import "server-only";
+import { cacheLife } from "next/cache";
+import { activePackage } from "@/app/(site)/get-started/data";
 import { mentors } from "@/content/mentors";
 import { formatKes } from "@/lib/money";
 import { CONTACT_EMAIL, HANDOFF } from "./shared";
 
 type Package = { name: string; priceKes: number; weeks: number } | null;
+
+/** The package on sale, cached for a minute so each question doesn't query the database. Errors aren't cached. */
+export async function currentPackage(): Promise<Package> {
+  "use cache";
+  cacheLife("minutes");
+  const pkg = await activePackage();
+  return pkg ? { name: pkg.name, priceKes: pkg.priceKes, weeks: pkg.weeks } : null;
+}
 
 /**
  * The assistant's instructions and everything it may say about Njia. It only

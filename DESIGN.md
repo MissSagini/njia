@@ -355,13 +355,14 @@ The feel is soft but not bubbly.
 ### Chat assistant
 - **Where.** Website pages only, for visitors and parents. It is hidden until it is set up.
 - **Launcher.** A Secondary `md` button, "Ask a question" with the message icon, fixed 16px from the bottom-right corner with `shadow-lg`. It is never Sunset, which stays free for each page's hero button.
-- **Window.** The Sheet: a bottom sheet on mobile and a centred 480px panel from `sm` up. The title is "Ask a question." and the description says that answers come from AI, can be wrong, and that people shouldn't share personal details.
+- **Window.** The Sheet: a bottom sheet on mobile and a centred 480px panel from `sm` up. The title is "Ask a question." and the description says that answers come from AI using what's on the site, and that people shouldn't share personal details.
 - **Messages.** The conversation scrolls inside the sheet, up to half the screen height. The visitor's messages sit on the right on {colors.forest-soft}. The assistant's sit on the left on {colors.cream} with a 1px {colors.border} border. Both use {rounded.md} corners, the {typography.body} style and at most 85% of the width.
 - **Empty.** One muted line ("Try one of these, or type your own.") above three starter questions as left-aligned choice chips.
 - **Loading.** The assistant's message shows "Writing an answer…" in {colors.text-muted} until the first words arrive, then fills in as it streams. The Send button shows its loading state.
-- **Hand-off.** When a person should take over, the assistant's message is followed by a Secondary "Book a free call" button and an Outline "Email us" button.
+- **Hand-off.** When a person should take over, the assistant's message is followed by a Secondary "Book a free call" button and an Outline "Email us" button. Tapping either closes the sheet. If the assistant wrote nothing else, its message reads "A person on our team can help with that."
+- **Closing.** Closing the sheet stops an answer that's still coming in. Whatever had arrived stays in the conversation.
 - **Error.** An error Banner above the input: "The assistant didn't answer. Try again, or email us at hello@njia.co.ke." The question goes back into the input so it isn't lost.
-- **Input.** A text input labelled "Your question" with a Secondary `md` Send button beside it.
+- **Input.** A text input labelled "Your question" with a Secondary `md` Send button beside it. Under it, one {typography.small} line in {colors.text-muted}: "AI can make mistakes. Check important details with us."
 
 ### Feedback layers
 - **Sheet or modal.** A full-screen Ink scrim at 55%.
