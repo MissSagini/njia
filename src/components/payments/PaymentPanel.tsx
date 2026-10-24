@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ChoiceChip } from "@/components/ui/ChoiceChip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormGroup } from "@/components/ui/FormLayout";
+import { Panel } from "@/components/ui/Panel";
 import { TextInput } from "@/components/ui/TextInput";
 import { formatKes } from "@/lib/money";
 import { checkPayment, startPayment, type StartState } from "@/lib/payments/actions";
@@ -76,7 +77,7 @@ export function PaymentPanel({ token, amountKes, afterPaid }: Props) {
 
   if (waiting) {
     return (
-      <div className="flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6" role="status" aria-live="polite">
+      <Panel as="div" role="status" aria-live="polite">
         <div className="flex items-center gap-3">
           <span aria-hidden className="size-5 animate-spin rounded-pill border-2 border-forest border-r-transparent" />
           <h2 className="m-0 type-heading">Check the phone ending {waiting.phoneEnding}.</h2>
@@ -84,7 +85,7 @@ export function PaymentPanel({ token, amountKes, afterPaid }: Props) {
         <p className="m-0 text-body text-ink-muted">
           An M-Pesa prompt for {formatKes(amountKes)} is on its way. Enter the M-Pesa PIN to pay. This page updates by itself.
         </p>
-      </div>
+      </Panel>
     );
   }
 
@@ -92,13 +93,10 @@ export function PaymentPanel({ token, amountKes, afterPaid }: Props) {
   const busy = pending || !!state.redirectTo;
 
   return (
-    <form action={action} noValidate className="m-0 flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
+    <Panel title={`Pay ${formatKes(amountKes)}`} description="Payments are handled securely by Paystack. Njia never sees card details.">
+    <form action={action} noValidate className="m-0 flex flex-col gap-4">
       <input type="hidden" name="token" value={token} />
       <input type="hidden" name="method" value={method} />
-      <header className="flex flex-col gap-1">
-        <h2 className="m-0 type-heading">Pay {formatKes(amountKes)}</h2>
-        <p className="m-0 text-body text-ink-muted">Payments are handled securely by Paystack. Njia never sees card details.</p>
-      </header>
 
       <FormGroup legend="How would you like to pay?" className="gap-2">
         <div className="grid grid-cols-2 gap-2">
@@ -143,5 +141,6 @@ export function PaymentPanel({ token, amountKes, afterPaid }: Props) {
             : "Pay by card"}
       </Button>
     </form>
+    </Panel>
   );
 }

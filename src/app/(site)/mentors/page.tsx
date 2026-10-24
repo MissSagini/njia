@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { MentorDirectory } from "@/components/site/MentorDirectory";
 import { Section } from "@/components/site/Section";
 import { Button } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { mentors } from "@/content/mentors";
 
@@ -43,11 +44,11 @@ export default function MentorsPage() {
         <h2 className="m-0 type-title">How we choose mentors</h2>
         <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 lg:grid-cols-3">
           {checks.map((c) => (
-            <li key={c.title} className="flex flex-col gap-3 rounded-md border border-line bg-cream p-6">
+            <Panel as="li" key={c.title} tone="cream" padding="lg" gap="md">
               <Icon name={c.icon} size={24} color="var(--color-forest)" />
               <h3 className="m-0 text-body-lg font-bold">{c.title}</h3>
               <p className="m-0 text-body text-ink-muted">{c.text}</p>
-            </li>
+            </Panel>
           ))}
         </ul>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">

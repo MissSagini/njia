@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AdminPage, Detail, LoadError, Panel, StudentStatus } from "@/components/admin/AdminPage";
+import { AdminPage, Detail, LoadError, StudentStatus } from "@/components/admin/AdminPage";
 import { CallEditor } from "@/components/admin/CallEditor";
 import { CopyLink } from "@/components/admin/CopyLink";
 import { SendReportTest } from "@/components/admin/ReportButtons";
 import { ContactDetails, RecordPaymentForm } from "@/components/admin/StudentForms";
 import { PairForm } from "@/components/admin/PairForm";
+import { Panel } from "@/components/ui/Panel";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";

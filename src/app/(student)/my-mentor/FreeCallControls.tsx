@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { TimeChooser, type OpenTime } from "@/components/booking/TimeChooser";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
 import { Toast } from "@/components/ui/Toast";
 import { cancelCall, changeCall } from "@/lib/calls/actions";
 import { EAT } from "@/lib/time";
@@ -23,7 +24,7 @@ export function FreeCallControls({ openTimes, canChange }: { openTimes: OpenTime
     <div className="flex flex-col gap-3 pt-2">
       {toast ? <Toast onDismiss={() => setToast(false)}>Call moved</Toast> : null}
       {mode === "moving" ? (
-        <div className="flex flex-col gap-3 rounded-md border border-line p-3 sm:p-4">
+        <Panel as="div" padding="sm" gap="md" className="sm:p-4">
           <div className="flex items-center justify-between gap-2">
             <h3 className="m-0 text-[15px] leading-[22px] font-semibold text-ink">Choose a new time (EAT)</h3>
             <Button variant="ghost" size="md" onClick={() => setMode("idle")}>
@@ -41,9 +42,9 @@ export function FreeCallControls({ openTimes, canChange }: { openTimes: OpenTime
             }}
             labels={["Move my call to this time", "Moving your call…"]}
           />
-        </div>
+        </Panel>
       ) : mode === "cancelling" ? (
-        <div className="flex flex-col gap-2 rounded-md border border-line bg-cream p-3">
+        <Panel as="div" tone="cream" padding="sm" gap="sm">
           <p className="m-0 text-body text-ink">
             Cancel your free call? If you already know what you need, you can pay below and we&apos;ll pair you with a mentor.
           </p>
@@ -56,7 +57,7 @@ export function FreeCallControls({ openTimes, canChange }: { openTimes: OpenTime
             </Button>
           </div>
           {error ? <Banner tone="error">{error}</Banner> : null}
-        </div>
+        </Panel>
       ) : (
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="md" iconLeft="calendar" onClick={() => setMode("moving")}>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
+import { Panel } from "@/components/ui/Panel";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { requireViewer } from "@/lib/auth/dal";
 import { mentees, menteeSessions } from "@/lib/sessions/data";
@@ -66,11 +67,7 @@ async function Mentee({ params }: Pick<PageProps<"/students/[studentId]">, "para
 /** What the student is aiming for. They edit it on My goals, so it's always current. */
 function Goals({ goals, timeZone }: { goals: StudentGoals; timeZone: string }) {
   return (
-    <section className="flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="m-0 type-heading">Goals</h2>
-        <span className="text-small text-ink-muted">Updated {formatLongDay(goals.updatedAt, timeZone)}</span>
-      </header>
+    <Panel title="Goals" action={<span className="text-small text-ink-muted">Updated {formatLongDay(goals.updatedAt, timeZone)}</span>}>
       <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-0.5">
           <dt className="text-small font-semibold text-ink-muted">Course</dt>
@@ -95,6 +92,6 @@ function Goals({ goals, timeZone }: { goals: StudentGoals; timeZone: string }) {
           <dd className="m-0 text-body whitespace-pre-line">{goals.helpNeeded}</dd>
         </div>
       </dl>
-    </section>
+    </Panel>
   );
 }

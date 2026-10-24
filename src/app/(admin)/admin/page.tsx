@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AdminPage, LoadError, Panel, StudentStatus } from "@/components/admin/AdminPage";
+import { AdminPage, LoadError, StudentStatus } from "@/components/admin/AdminPage";
 import { SendReportsNow } from "@/components/admin/ReportButtons";
+import { Panel } from "@/components/ui/Panel";
 import { Banner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { allMentors, allStudents, callSlots, PAIRING_DAYS } from "@/lib/admin/data";

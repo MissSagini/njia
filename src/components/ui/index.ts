@@ -9,6 +9,7 @@ export { EmptyState } from "./EmptyState";
 export { FormGroup, FormLayout, FormRow } from "./FormLayout";
 export { ICON_NAMES, Icon, type IconName } from "./Icon";
 export { Logo } from "./Logo";
+export { Panel } from "./Panel";
 export { PathMotif } from "./PathMotif";
 export { Select } from "./Select";
 export { Sheet } from "./Sheet";

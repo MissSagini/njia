@@ -4,6 +4,7 @@ import { useActionState, useState, type ReactNode } from "react";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { FormRow } from "@/components/ui/FormLayout";
+import { Panel } from "@/components/ui/Panel";
 import { Select } from "@/components/ui/Select";
 import { TextInput } from "@/components/ui/TextInput";
 import { Toast } from "@/components/ui/Toast";
@@ -118,7 +119,8 @@ export function RecordPaymentForm({ studentId, balanceKes }: { studentId: string
   const v = state.values ?? { amount: String(balanceKes), method: "", paidOn: today, note: "" };
   const e = state.fieldErrors ?? {};
   return (
-    <form action={action} noValidate className="m-0 flex flex-col gap-4 rounded-md border border-line p-3 sm:p-4">
+    <Panel as="div" padding="sm" className="sm:p-4">
+    <form action={action} noValidate className="m-0 flex flex-col gap-4">
       {toast}
       <input type="hidden" name="studentId" value={studentId} />
       <p className="m-0 text-body text-ink-muted">
@@ -142,6 +144,7 @@ export function RecordPaymentForm({ studentId, balanceKes }: { studentId: string
         </Button>
       </div>
     </form>
+    </Panel>
   );
 }
 

@@ -1,6 +1,7 @@
 import { MentorCard } from "@/components/site/MentorCard";
 import { Section, SectionIntro, SectionLink } from "@/components/site/Section";
 import { Avatar } from "@/components/ui/Avatar";
+import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -176,7 +177,7 @@ export default function HomePage() {
         <h2 className="m-0 type-title">Two ways to start.</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           {ways.map((w) => (
-            <div key={w.title} className="flex flex-col gap-4 rounded-md border border-line bg-cream p-4 lg:p-8">
+            <Panel as="div" key={w.title} tone="cream" padding="none" className="p-4 lg:p-8">
               <h3 className="m-0 type-heading">{w.title}</h3>
               <p className="m-0 text-body text-ink-muted">{w.text}</p>
               <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -192,7 +193,7 @@ export default function HomePage() {
                   {w.cta}
                 </Button>
               </div>
-            </div>
+            </Panel>
           ))}
         </div>
       </Section>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Section, SectionIntro } from "@/components/site/Section";
 import { Button } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
 import { Icon, type IconName } from "@/components/ui/Icon";
 
 export const metadata: Metadata = { title: "How it works" };
@@ -80,11 +81,11 @@ export default function HowItWorksPage() {
         <h2 className="m-0 type-title text-pretty">A typical week: one session, a few tasks, one report.</h2>
         <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 lg:grid-cols-4">
           {week.map((w) => (
-            <li key={w.title} className="flex flex-col gap-3 rounded-md border border-line bg-white p-6">
+            <Panel as="li" key={w.title} padding="lg" gap="md">
               <Icon name={w.icon} size={24} color="var(--color-forest)" />
               <h3 className="m-0 text-body-lg font-bold">{w.title}</h3>
               <p className="m-0 text-body text-ink-muted">{w.text}</p>
-            </li>
+            </Panel>
           ))}
         </ul>
       </Section>

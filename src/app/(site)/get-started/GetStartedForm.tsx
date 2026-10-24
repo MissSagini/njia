@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type Ref } from "react";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +11,7 @@ import { ChoiceChip } from "@/components/ui/ChoiceChip";
 import { FieldHelp } from "@/components/ui/Field";
 import { FormGroup, FormRow } from "@/components/ui/FormLayout";
 import { Icon } from "@/components/ui/Icon";
+import { Panel } from "@/components/ui/Panel";
 import { UniversityPicker } from "@/components/goals/UniversityPicker";
 import { PackageSummaryCard } from "@/components/payments/PackageSummaryCard";
 import { Select } from "@/components/ui/Select";
@@ -90,7 +91,7 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
         </div>
       </fieldset>
 
-      <Section title="About you">
+      <Panel title="About you">
         <TextInput label="Full name" name="fullName" autoComplete="name" defaultValue={values.fullName} error={errors.fullName} />
         <FormRow>
           <TextInput
@@ -124,9 +125,9 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
           />
         </FormRow>
         <TextInput label="School" name="school" optional autoComplete="organization" defaultValue={values.school} error={errors.school} />
-      </Section>
+      </Panel>
 
-      <Section title="Your goals">
+      <Panel title="Your goals">
         <FormRow>
           <Select
             // Remount with what was sent: React's post-submit form reset would otherwise blank a select
@@ -155,9 +156,9 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
           defaultValue={values.helpNeeded}
           error={errors.helpNeeded}
         />
-      </Section>
+      </Panel>
 
-      <Section title="Your parent or guardian" description="They get a short progress report each week. They don't need an account.">
+      <Panel title="Your parent or guardian" description="They get a short progress report each week. They don't need an account.">
         <FormRow>
           <TextInput label="Their name" name="parentName" defaultValue={values.parentName} error={errors.parentName} />
           <TextInput
@@ -170,7 +171,7 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
             error={errors.parentEmail}
           />
         </FormRow>
-      </Section>
+      </Panel>
 
       {isCall ? (
         <CallTimes slots={slots} takenSlotId={state.takenSlotId} error={errors.slotId} onApplyInstead={() => choosePath(START_PATHS.apply)} />
@@ -207,18 +208,6 @@ export function GetStartedForm({ initialPath, slots, pkg }: Props) {
         </p>
       </div>
     </form>
-  );
-}
-
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
-      <header className="flex flex-col gap-1">
-        <h2 className="m-0 type-heading">{title}</h2>
-        {description ? <p className="m-0 text-body text-ink-muted">{description}</p> : null}
-      </header>
-      {children}
-    </section>
   );
 }
 
@@ -260,14 +249,14 @@ function CallTimes({
 
   if (slots === null) {
     return (
-      <Section title="Choose a call time" description={description}>
+      <Panel title="Choose a call time" description={description}>
         <Banner tone="error">We couldn&apos;t load the call times. Refresh the page to try again.</Banner>
-      </Section>
+      </Panel>
     );
   }
   if (days.length === 0) {
     return (
-      <Section title="Choose a call time" description={description}>
+      <Panel title="Choose a call time" description={description}>
         <Banner
           tone="info"
           icon="calendar"
@@ -280,12 +269,12 @@ function CallTimes({
         >
           New times open every week, so check back tomorrow. If you already know what you need, you can apply now.
         </Banner>
-      </Section>
+      </Panel>
     );
   }
 
   return (
-    <Section title="Choose a call time" description={description}>
+    <Panel title="Choose a call time" description={description}>
       <input type="hidden" name="slotId" value={slotId} />
       <FormGroup legend="Day" className="gap-2">
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -312,7 +301,7 @@ function CallTimes({
         <Icon name="users" size={20} color="var(--color-forest)" style={{ marginTop: 3 }} />
         Your parent is welcome to join. We&apos;ll email them the invite too.
       </p>
-    </Section>
+    </Panel>
   );
 }
 
@@ -339,7 +328,7 @@ function Confirmation({ done, ref }: { done: NonNullable<GoalsState["done"]>; re
       ];
 
   return (
-    <div ref={ref} className="flex scroll-mt-24 flex-col gap-6 rounded-md border border-line bg-white p-6 sm:p-10" role="status">
+    <Panel as="div" ref={ref} padding="xl" gap="xl" className="scroll-mt-24" role="status">
       <div className="flex size-14 items-center justify-center rounded-pill bg-forest-soft">
         <Icon name={isCall ? "calendar" : "check"} size={24} color="var(--color-forest)" />
       </div>
@@ -355,6 +344,6 @@ function Confirmation({ done, ref }: { done: NonNullable<GoalsState["done"]>; re
       <Button variant="secondary" href="/how-it-works" className="self-start">
         See how it works
       </Button>
-    </div>
+    </Panel>
   );
 }

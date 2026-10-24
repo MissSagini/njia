@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { AdminPage, LoadError, Panel } from "@/components/admin/AdminPage";
+import { AdminPage, LoadError } from "@/components/admin/AdminPage";
 import { EditMentorForm } from "@/components/admin/MentorForms";
+import { Panel } from "@/components/ui/Panel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { asUser, schema } from "@/db";

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { AdminPage, LoadError, Panel } from "@/components/admin/AdminPage";
+import { AdminPage, LoadError } from "@/components/admin/AdminPage";
 import { AddMentorForm, ApproveButton } from "@/components/admin/MentorForms";
+import { Panel } from "@/components/ui/Panel";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";

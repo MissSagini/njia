@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { FieldHelp } from "@/components/ui/Field";
 import { FormGroup } from "@/components/ui/FormLayout";
 import { Icon } from "@/components/ui/Icon";
+import { Panel } from "@/components/ui/Panel";
 import { TextInput } from "@/components/ui/TextInput";
 import { Toast } from "@/components/ui/Toast";
 import { TimeChooser } from "@/components/booking/TimeChooser";
@@ -99,20 +100,20 @@ function Progress({ sessions, weeks, timeZone, now }: { sessions: SessionItem[];
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="flex flex-col gap-2 rounded-md border border-line bg-white p-4 sm:p-6">
+      <Panel as="div" gap="sm">
         <div className="type-label text-forest">{formatMonth(now, timeZone)}</div>
         <div className="font-heading text-[22px] leading-[30px] font-semibold">
           {monthTasks.length ? `${done} of ${monthTasks.length} tasks done` : "No tasks yet this month"}
         </div>
         <Bar value={monthTasks.length ? done / monthTasks.length : 0} label="Tasks done this month" />
-      </div>
-      <div className="flex flex-col gap-2 rounded-md border border-line bg-white p-4 sm:p-6">
+      </Panel>
+      <Panel as="div" gap="sm">
         <div className="type-label text-forest">Programme</div>
         <div className="font-heading text-[22px] leading-[30px] font-semibold">
           {held} of {weeks} sessions held
         </div>
         <Bar value={held / weeks} label="Sessions held" />
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -144,7 +145,7 @@ function SessionCard({
   const when = `${formatLongDay(session.startsAt, timeZone)}, ${formatTime(session.startsAt, timeZone)} to ${formatTime(session.endsAt, timeZone)} ${zoneLabel(session.startsAt, timeZone)}`;
 
   return (
-    <article className="flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
+    <Panel as="article">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -196,7 +197,7 @@ function SessionCard({
       {!upcoming && mode === "mentor" ? <OutcomeControl session={session} /> : null}
 
       {mode === "student" ? <StudentTasks tasks={session.tasks} /> : <MentorTasks session={session} />}
-    </article>
+    </Panel>
   );
 }
 
@@ -285,22 +286,21 @@ function TaskWork({ task }: { task: SessionTask }) {
             <Icon name="file-text" size={16} />
             Your work
           </a>
-          <button type="button" onClick={() => setEditing(true)} className="min-h-11 cursor-pointer border-0 bg-transparent px-1 text-small text-forest underline">
+          <Button variant="link" onClick={() => setEditing(true)}>
             Change link
-          </button>
+          </Button>
           <form action={action} className="m-0">
             <input type="hidden" name="taskId" value={task.id} />
             <input type="hidden" name="workUrl" value="" />
-            <button type="submit" disabled={pending} className="min-h-11 cursor-pointer border-0 bg-transparent px-1 text-small text-ink-muted underline">
+            <Button type="submit" variant="link" disabled={pending}>
               Remove
-            </button>
+            </Button>
           </form>
         </>
       ) : (
-        <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 cursor-pointer items-center gap-1 border-0 bg-transparent px-0 text-small text-forest underline">
-          <Icon name="plus" size={16} />
+        <Button variant="link" iconLeft="plus" onClick={() => setEditing(true)}>
           Add a link to your work
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -333,16 +333,10 @@ function BookNext({ data, timeZone, hasSessions }: { data: SessionsData; timeZon
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
+    <Panel title={title} description={`${mentorFirst}'s free times, in East Africa Time (EAT). Sessions are 1 hour on Google Meet.`}>
       {toastEl}
-      <header className="flex flex-col gap-1">
-        <h2 className="m-0 type-heading">{title}</h2>
-        <p className="m-0 text-body text-ink-muted">
-          {`${mentorFirst}'s free times, in East Africa Time (EAT). Sessions are 1 hour on Google Meet.`}
-        </p>
-      </header>
       <TimeChooser freeTimes={data.freeTimes} timeZone={timeZone} action={bookSession} onDone={() => setToast(true)} labels={["Book this time", "Booking your session…"]} />
-    </section>
+    </Panel>
   );
 }
 
@@ -359,7 +353,7 @@ function CancelButton({ sessionId }: { sessionId: string }) {
     );
   }
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-line bg-cream p-3">
+    <Panel as="div" tone="cream" padding="sm" gap="sm">
       <p className="m-0 text-body">
         Cancel this session? The time goes back on offer. Let your student know on WhatsApp too.
       </p>
@@ -372,7 +366,7 @@ function CancelButton({ sessionId }: { sessionId: string }) {
         </Button>
       </div>
       {error ? <Banner tone="error">{error}</Banner> : null}
-    </div>
+    </Panel>
   );
 }
 

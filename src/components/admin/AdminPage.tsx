@@ -54,19 +54,3 @@ export function Detail({ label, children, wide }: { label: string; children: Rea
     </div>
   );
 }
-
-/** White panel with a heading, for grouping parts of a screen. */
-export function Panel({ title, description, action, children }: { title: string; description?: ReactNode; action?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="m-0 type-heading">{title}</h2>
-          {description ? <p className="m-0 text-body text-ink-muted">{description}</p> : null}
-        </div>
-        {action}
-      </header>
-      {children}
-    </section>
-  );
-}

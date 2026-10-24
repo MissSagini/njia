@@ -300,6 +300,7 @@ The feel is soft but not bubbly.
 - **Outline** uses {colors.surface} with a {colors.secondary} border and text.
 - **Ghost** is text only, in {colors.secondary}.
 - **Inverse** uses {colors.cream} on {colors.ink} backgrounds.
+- **Link** is an underlined {typography.small} label in {colors.secondary}, with no fill or border, still at least {spacing.touch-min} tall. Use it for small actions inside a line of content, such as "Change link" or "Remove" next to a task.
 - **Sizes.** `lg` is at least 52px tall with a 19px label. `md` is at least {spacing.touch-min} tall with a 16px label. Primary is always `lg`.
 - **States:**
   - Hover: filled buttons darken toward Ink (`sunset-hover`, `forest-hover`) and lift with `shadow-md`. Outline and ghost buttons gain a {colors.forest-soft} fill.
@@ -333,6 +334,11 @@ The feel is soft but not bubbly.
   - Interactive cards lift 2px with `shadow-md` on hover, show the focus outline and use a pointer cursor.
   - Selected: a 2px {colors.forest} border.
   - Disabled: 55% opacity.
+- **Panel.** A plain box for grouping part of a screen that holds forms, lists or mixed content, where a card's text styling would get in the way. It has a 1px {colors.border} border, {rounded.md} corners, no shadow, and puts no styles on its content.
+  - Tones: {colors.surface} (default) or {colors.cream} (website feature cards on white sections, and inline confirm steps such as "Cancel this session?").
+  - Padding: {spacing.4} on mobile and {spacing.6} on desktop by default; 12px for inline steps nested inside another box.
+  - An optional header holds a {typography.heading} title, a {typography.body} description in {colors.text-muted}, and one action at the end of the row.
+  - Use Card for short text cards and Panel for everything else. Never hand-build a bordered box.
 - **Badges** use the {typography.label} style with {rounded.sm} corners. Variants are tag, forest, ochre (with Ink text), neutral and dark. **Tags** use {rounded.pill} corners on {colors.surface-tint}.
 
 ### Navigation

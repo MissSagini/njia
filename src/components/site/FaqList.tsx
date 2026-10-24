@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { Panel } from "@/components/ui/Panel";
 import { cx } from "@/lib/cx";
 
 /** Accordion of questions. One answer open at a time; the first starts open. */
@@ -15,7 +16,7 @@ export function FaqList({ items }: { items: { question: string; answer: string }
         const expanded = open === i;
         const panelId = `${baseId}-${i}`;
         return (
-          <div key={item.question} className="rounded-md border border-line bg-white">
+          <Panel as="div" key={item.question} padding="none" gap="none">
             <h3 className="m-0">
               <button
                 type="button"
@@ -37,7 +38,7 @@ export function FaqList({ items }: { items: { question: string; answer: string }
                 {item.answer}
               </p>
             ) : null}
-          </div>
+          </Panel>
         );
       })}
     </div>

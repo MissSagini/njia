@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FaqList } from "@/components/site/FaqList";
 import { Section } from "@/components/site/Section";
 import { Button } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
 
@@ -82,11 +83,11 @@ export default function ForParentsPage() {
         <h2 className="m-0 type-title">Clear, calm and in the loop.</h2>
         <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 lg:grid-cols-4">
           {points.map((p) => (
-            <li key={p.title} className="flex flex-col gap-3 rounded-md border border-line bg-cream p-6">
+            <Panel as="li" key={p.title} tone="cream" padding="lg" gap="md">
               <Icon name={p.icon} size={24} color="var(--color-forest)" />
               <h3 className="m-0 text-body-lg font-bold">{p.title}</h3>
               <p className="m-0 text-body text-ink-muted">{p.text}</p>
-            </li>
+            </Panel>
           ))}
         </ul>
       </Section>

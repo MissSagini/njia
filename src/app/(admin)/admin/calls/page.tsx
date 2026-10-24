@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AdminPage, LoadError, Panel } from "@/components/admin/AdminPage";
+import { AdminPage, LoadError } from "@/components/admin/AdminPage";
 import { CallEditor } from "@/components/admin/CallEditor";
 import { CallTimesForm, RemoveCallTime } from "@/components/admin/CallTimesForm";
+import { Panel } from "@/components/ui/Panel";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { callSlots, type CallSlotRow } from "@/lib/admin/data";

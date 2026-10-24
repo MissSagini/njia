@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormRow } from "@/components/ui/FormLayout";
 import { Icon } from "@/components/ui/Icon";
+import { Panel } from "@/components/ui/Panel";
 import { Select } from "@/components/ui/Select";
 import { TextInput } from "@/components/ui/TextInput";
 import { Toast } from "@/components/ui/Toast";
@@ -61,11 +62,8 @@ export function FreeTimes({ timeZone, times }: { timeZone: string; times: Time[]
     <div className="flex flex-col gap-8">
       {toast ? <Toast onDismiss={() => setToast(undefined)}>{toast}</Toast> : null}
 
-      <form action={action} className="m-0 flex flex-col gap-4 rounded-md border border-line bg-white p-4 sm:p-6">
-        <header className="flex flex-col gap-1">
-          <h2 className="m-0 type-heading">Add a free time</h2>
-          <p className="m-0 text-body text-ink-muted">Times are in {zone}. Students see them in East Africa Time.</p>
-        </header>
+      <Panel title="Add a free time" description={`Times are in ${zone}. Students see them in East Africa Time.`}>
+      <form action={action} className="m-0 flex flex-col gap-4">
         <FormRow columns={3}>
           <TextInput label="Day" name="date" type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} error={state.fieldErrors?.date} />
           <Select label="Start time" name="time" placeholder="Choose" options={START_TIMES} value={time} onChange={(e) => setTime(e.target.value)} error={state.fieldErrors?.time} />
@@ -76,6 +74,7 @@ export function FreeTimes({ timeZone, times }: { timeZone: string; times: Time[]
           {pending ? "Adding your free time…" : "Add free time"}
         </Button>
       </form>
+      </Panel>
 
       <section className="flex flex-col gap-4">
         <h2 className="m-0 type-heading">Your upcoming free times</h2>
@@ -95,7 +94,7 @@ function Day({ times, timeZone }: { times: Time[]; timeZone: string }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   return (
-    <div className="flex flex-col rounded-md border border-line bg-white px-4 py-2 sm:px-6">
+    <Panel as="div" padding="none" gap="none" className="px-4 py-2 sm:px-6">
       <h3 className="m-0 py-2 font-heading text-[18px] leading-[26px] font-semibold">{formatLongDay(times[0].startsAt, timeZone)}</h3>
       <ul className="m-0 flex list-none flex-col p-0">
         {times.map((t) => (
@@ -123,6 +122,6 @@ function Day({ times, timeZone }: { times: Time[]; timeZone: string }) {
         ))}
       </ul>
       {error ? <Banner tone="error" className="mb-2">{error}</Banner> : null}
-    </div>
+    </Panel>
   );
 }
